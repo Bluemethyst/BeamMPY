@@ -18,7 +18,7 @@ an offline wheel directory with --wheelhouse.
 From PowerShell in the extracted installers directory:
 
 ```powershell
-.\install.ps1 --wheel "C:\Downloads\beammpy-0.3.2-py3-none-any.whl" --install-dir "C:\BeamMPY\app" --data-dir "C:\BeamMPY\data"
+.\install.ps1 --wheel "C:\Downloads\beammpy-0.4.1-py3-none-any.whl" --install-dir "C:\BeamMPY\app" --data-dir "C:\BeamMPY\data"
 & "C:\BeamMPY\app\beammpy.ps1" start
 ```
 
@@ -32,15 +32,17 @@ PowerShell policy. The installer does not change execution policy.
 ## Linux
 
 ```sh
-sh ./install.sh --wheel "$HOME/Downloads/beammpy-0.3.2-py3-none-any.whl" --install-dir "$HOME/BeamMPY/app" --data-dir "$HOME/BeamMPY/data"
+sh ./install.sh --wheel "$HOME/Downloads/beammpy-0.4.1-py3-none-any.whl" --install-dir "$HOME/BeamMPY/app" --data-dir "$HOME/BeamMPY/data"
 sh "$HOME/BeamMPY/app/beammpy.sh" start
 ```
 
 The shell scripts use python3. If this interpreter cannot create a virtual
-environment, install the distribution's venv support first. These scripts are
-configured for CI on Ubuntu 24.04; Linux execution is still a release gate until
-that workflow is actually run. Windows verification does not establish Linux
-support.
+environment, install the distribution's venv support first. Actual shell-script
+installation/update, active-panel rejection and installed-launcher checks passed
+on Ubuntu 24.04 with Python 3.11 and 3.13 in
+[v0.3.2 CI](https://github.com/Bluemethyst/BeamMPY/actions/runs/43400444506).
+Real Linux BeamMP execution remains a release gate; that run skipped the optional
+real-binary smoke checks. Full authenticated player joins remain unverified.
 
 ## First account and routine access
 
@@ -67,6 +69,13 @@ the permission model; upload covers vehicle and map ZIPs in the same mod manager
 Member mod writes require private instance-local resource folders. Shared or
 external resources remain available to the administrator through the existing
 mod manager.
+
+Version 0.4 adds Statistics on each server dashboard. CPU, memory and uptime are
+for that BeamMP process only. Grant members View statistics separately in Users.
+As administrator, stop a server and enable Collect player statistics on its
+Statistics tab to install the optional bundled server plugin. Start the server
+to collect online counts and successful joins; no client mod is needed. History
+is retained for 30 days. See STATISTICS.md for resource restrictions and units.
 
 ## Forgotten passwords or usernames
 

@@ -15,6 +15,7 @@ def main():
                 archive.write(source, source.name)
         archive.write(root / "docs" / "INSTALLATION.md", "INSTALLATION.md")
         archive.write(root / "docs" / "ACCOUNTS_DEPLOYMENT.md", "ACCOUNTS_DEPLOYMENT.md")
+        archive.write(root / "docs" / "STATISTICS.md", "STATISTICS.md")
     print(destination.name)
 
 

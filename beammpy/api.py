@@ -109,6 +109,19 @@ def register_api(app, registry):
         require_server(server_id, "configure")
         return jsonify(config=read_config(registry.get(server_id).directory))
 
+    @api.get("/servers/<server_id>/statistics")
+    def statistics(server_id):
+        require_server(server_id, "statistics_view")
+        response = jsonify(app.extensions["statistics"].snapshot(registry.get(server_id), request.args.get("range", "24h")))
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    @api.put("/servers/<server_id>/statistics/telemetry")
+    def statistics_telemetry(server_id):
+        require_admin()
+        app.extensions["statistics"].configure_plugin(server_id, json_body().get("enabled"))
+        return jsonify(enabled=server_id in app.extensions["statistics"].plugins)
+
     @api.put("/servers/<server_id>/config")
     def save_config(server_id):
         require_server(server_id, "configure")

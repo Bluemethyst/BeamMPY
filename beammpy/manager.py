@@ -129,6 +129,9 @@ class Instance:
     def _read(self, process):
         try:
             for line in iter(lambda: process.stdout.readline(16384), ""):
+                statistics = getattr(self.registry, "statistics", None)
+                if statistics and statistics.ingest(self, process, line):
+                    continue
                 self.append(line.rstrip("\r\n"))
         except (OSError, ValueError):
             pass

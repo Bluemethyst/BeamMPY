@@ -37,7 +37,7 @@ if __name__ == "__main__":
         with zipfile.ZipFile(fixtures / "server-archive.zip", "w") as archive:
             for entry in imported.iterdir():
                 archive.write(entry, "Imported Server/" + entry.name)
-        server = create_server(app, host="127.0.0.1", port=8791, threads=32)
+        server = create_server(app, host="127.0.0.1", port=int(sys.argv[1]) if len(sys.argv) > 1 else 8791, threads=32)
         try:
             server.run()
         except KeyboardInterrupt:

@@ -11,6 +11,7 @@ from beammpy import create_app
 def app(tmp_path):
     fixture = Path(__file__).parent / "fixtures" / "fake_server.py"
     application = create_app({"TESTING": True, "DATA_DIR": tmp_path, "SECRET_KEY": "test-only",
+                              "STATISTICS_AUTOSTART": False,
                               "PROCESS_COMMAND": lambda instance, executable: [sys.executable, "-u", str(fixture)],
                               "START_DELAY": 0.1, "STOP_TIMEOUT": 0.2,
                               "INSTALLER": fake_install})

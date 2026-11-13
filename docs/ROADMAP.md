@@ -13,12 +13,41 @@ Project license: MIT (confirmed by the owner during implementation).
 | --- | --- |
 | 1. Foundations | Complete; migration, preservation, isolation and locking verified |
 | 2. Vue migration | Complete; TypeScript, production build and browser scenarios verified |
-| 3. Reliable management | Implemented; fixture integration and real Windows BeamMP verified; Linux execution pending |
-| 4. Release readiness | Wheel/sdist built; clean install without Node verified; Linux release gate pending |
+| 3. Reliable management | Implemented; Windows/Ubuntu fixture integration and historical real Windows BeamMP verified; real Linux BeamMP pending |
+| 4. Release readiness | Windows/Ubuntu packaging, clean install without Node and installer/update checks verified; real Linux BeamMP gate pending |
 
-Do not call this a cross-platform release until the Linux workflow and real
-BeamMP smoke check pass on a supported Linux host. The workflow is configured for
-Windows and Ubuntu 24.04 with Python 3.11/3.13; it has not been run remotely.
+Do not call this a cross-platform release until the real Linux BeamMP smoke check
+passes on a supported Linux host. The latest push passed the Windows and Ubuntu
+24.04 workflow on Python 3.11/3.13; the optional real-binary step was skipped.
+Full authenticated player joins remain separately unverified.
+
+## CI review and recommended next scope (2026-11-14)
+
+Reviewed [Checks run 43400444506](https://github.com/Bluemethyst/BeamMPY/actions/runs/43400444506)
+for the latest push, `da15a09ec4374c229350cab93df816af44a36986` (v0.3.2).
+All four jobs passed. Each log confirms 102 backend tests passed with two
+real-binary cases skipped, TypeScript/production build passed, seven browser
+scenarios passed, wheel/sdist and installers ZIP built, clean-wheel checks passed
+without Node, and actual platform install/update/active-panel rejection/installed
+launcher checks passed with disposable data preserved byte-for-byte. No failing
+checks or confirmed product regressions were found in this review. These are
+remote results for that commit, not newly rerun local suites.
+
+Recommended next scope: finish real BeamMP release validation using the existing
+Checks workflow's manual `real_beammp=true` input. This recommendation has not
+started a new feature or dispatched a workflow. Acceptance for that work:
+
+- Run the official-binary smoke checks on Ubuntu 24.04 and Windows in the existing
+  Python 3.11/3.13 matrix, using disposable private loopback instances only.
+- Require both IPv4-mapped and native IPv6 cases to pass startup, version
+  acceptance, UDP ping, stdin help, restart/version acceptance and shutdown.
+- Fix confirmed failures within that scope, rerun affected checks, and record
+  run links, OS/Python and BeamMP versions before changing milestone status.
+
+The smoke tests use throwaway keys and do not authenticate a game client. A full
+player join still needs separate evidence with a real client and credentials.
+General file management, backups/restores, monitoring/player tools, scheduling,
+BeamMP updates and remote hosts remain deferred.
 
 ## Ordered milestones
 
@@ -109,8 +138,9 @@ administrator-managed users, temporary-password changes, per-server HTTP/console
 authorization, local username discovery/administrator creation, and release-wheel
 install/update/launch scripts with isolated environments and separate data.
 
-Windows verification is recorded in HANDOFF.md. Linux script execution and real
-Linux BeamMP remain open gates; no cross-platform milestone is marked complete.
+Initial Windows verification is recorded in HANDOFF.md. The CI review above now
+verifies Ubuntu script execution too; real Linux BeamMP remains an open gate.
+No cross-platform milestone is marked complete.
 Member mod writes are confined to private instance-local resources so grants
 cannot mutate another server's shared resources; the owner retains existing
 shared/external mod management. Windows has 93 passing backend tests, five
@@ -143,8 +173,40 @@ unmounted console views cannot reconnect from delayed callbacks. Backend auth,
 CSRF enforcement and data remain unchanged. Windows TypeScript/build, all seven
 browser scenarios and 102 backend tests pass. Verification is recorded in HANDOFF.
 
+## Per-server statistics (v0.4.0)
+
+The owner approved the statistics scope on 2026-11-14 and clarified that each
+server's Statistics tab must show only its own usage. Implemented owned-process
+CPU/resident-memory/uptime, per-server persisted minute history for 30 days,
+resource line graphs and peak-online player bars, range menus and data tables.
+Player collection is an explicit administrator/stopped-server option installing
+only the bundled plugin in verified private resources. Successful joins include
+repeat visits; no player identities or chat are retained. A new statistics_view
+grant is independent of console access and preserves existing member grants.
+Schema 4 adds only statistics tables; account hashes, existing grants and TOML
+are preserved. See [STATISTICS.md](STATISTICS.md) for behavior and setup and
+HANDOFF.md for verified results. Real Linux BeamMP and authenticated player joins
+remain open gates; no cross-platform milestone is marked complete.
+
+Windows verification: 125 backend tests, TypeScript/build, eight browser scenarios,
+both official BeamMP v3.9.3 loopback/plugin cases, final clean-wheel install without
+Node and Windows installer/update checks pass. Existing live data was not used.
+
+## Statistics detail (v0.4.1)
+
+The owner requested chart points roughly every ten seconds. Statistics now
+defaults to Last hour with ten-second points and five-second refreshes; longer
+ranges stay aggregated. Schema 5 adds bounded persisted ten-second detail (24-hour
+retention) while preserving existing minute history, accounts, grants and player
+plugin registrations. Minute history remains available for 30 days in longer
+views; no detailed observations are fabricated for time before the update.
+Tooltips/tables include seconds and interval labels use seconds for this view.
+Windows verification: 128 backend tests, TypeScript/build, all eight browser
+scenarios and clean-wheel installation without Node pass. Verified results and
+the next task are recorded in HANDOFF.md.
+
 ## Remaining later work
 
 General file management (historical proposal in FILE_MANAGEMENT.md); backup/restore;
-monitoring/player tools; scheduling/BeamMP updates; remote hosts. No automatic
-server restarts are enabled.
+host monitoring, player profiles/moderation and alerts; scheduling/BeamMP updates;
+remote hosts. No automatic server restarts are enabled.

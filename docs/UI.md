@@ -1,5 +1,15 @@
 # UI conventions
 
+Version 0.4 adds a per-server Statistics tab, visible only with statistics_view.
+Version 0.4.1 defaults it to Last hour with ten-second points and five-second
+refreshes. Display seconds in short-range interval labels and inspection times.
+It uses M3E cards, a radio menu for time ranges and a checkbox for the optional
+administrator-managed player plugin. Resource/player graphs are local SVG data
+visualizations using public theme tokens, hover/keyboard interval inspection and
+optional accessible data tables. CPU/memory refer only to the selected BeamMP
+process. Keep unknown observations distinct from observed zeroes and guard poll
+responses by request generation so obsolete ranges/unmounted views cannot update.
+
 The owner requires M3E across the interface. Version 1.8.0 is pinned and bundled
 locally with its CSS, custom elements, Google Sans Flex and Material Symbols.
 Vue recognises `m3e-*` elements through Vite's compiler configuration. No runtime

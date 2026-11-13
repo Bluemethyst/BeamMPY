@@ -10,7 +10,7 @@ class Store:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.connection() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 3:
+            if version > 5:
                 raise RuntimeError("Database is newer than this panel; upgrade BeamMPY.")
             if version < 1:
                 db.executescript("""
@@ -54,6 +54,29 @@ class Store:
                            "server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE, "
                            "permissions TEXT NOT NULL, PRIMARY KEY(user_id,server_id))")
                 db.execute("PRAGMA user_version=3")
+            if version < 4:
+                db.execute("""CREATE TABLE IF NOT EXISTS statistics_minutes (
+                    server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+                    minute INTEGER NOT NULL, cpu_sum REAL NOT NULL DEFAULT 0,
+                    cpu_n INTEGER NOT NULL DEFAULT 0, cpu_peak REAL,
+                    memory_sum REAL NOT NULL DEFAULT 0, memory_n INTEGER NOT NULL DEFAULT 0,
+                    memory_peak REAL, players_peak INTEGER, player_n INTEGER NOT NULL DEFAULT 0,
+                    joins INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(server_id,minute))""")
+                db.execute("CREATE INDEX IF NOT EXISTS statistics_retention ON statistics_minutes(minute)")
+                db.execute("""CREATE TABLE IF NOT EXISTS statistics_plugins (
+                    server_id TEXT PRIMARY KEY REFERENCES servers(id) ON DELETE CASCADE,
+                    path TEXT NOT NULL, token TEXT NOT NULL)""")
+                db.execute("PRAGMA user_version=4")
+            if version < 5:
+                db.execute("""CREATE TABLE IF NOT EXISTS statistics_recent (
+                    server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+                    time INTEGER NOT NULL, cpu_sum REAL NOT NULL DEFAULT 0,
+                    cpu_n INTEGER NOT NULL DEFAULT 0, cpu_peak REAL,
+                    memory_sum REAL NOT NULL DEFAULT 0, memory_n INTEGER NOT NULL DEFAULT 0,
+                    memory_peak REAL, players_peak INTEGER, player_n INTEGER NOT NULL DEFAULT 0,
+                    joins INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(server_id,time))""")
+                db.execute("CREATE INDEX IF NOT EXISTS statistics_recent_retention ON statistics_recent(time)")
+                db.execute("PRAGMA user_version=5")
 
     @contextmanager
     def connection(self):

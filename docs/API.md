@@ -25,6 +25,7 @@ The sole administrator has all permissions. Action names are:
 | configure | Read masked configuration and edit typed settings |
 | console_view | Subscribe to history, status and console output |
 | console_command | Send BeamMP stdin commands, including commands that stop it |
+| statistics_view | Read this server's process and aggregate player statistics |
 
 Map changes through the config API also require maps permission. Commands require
 console_view; commands and power are independent grants. Server creation uses the global can_create_servers
@@ -109,6 +110,41 @@ An operation has `id`, `server_id`, `action`, `state` (running/succeeded/failed)
 `progress` (0–100) and `message`. Operation history is in memory and bounded;
 instance state and process identity are persisted. Active operations appear in
 server responses so progress remains visible after a browser reload.
+
+## Statistics (v0.4)
+
+- `GET /api/servers/:id/statistics?range=24h` requires `statistics_view` and returns
+  `{server_id, range, bucket_seconds, live, history, summary, telemetry_enabled}`.
+  Supported ranges: `1h` (ten-second buckets), `24h` (five-minute buckets),
+  `7d` (30-minute buckets) and `30d` (hourly buckets). The result has at most 721
+  points including the partial edge buckets. Responses use `Cache-Control: no-store`.
+- `live` contains status (`live`, `stopped`, `stale`, `unavailable`), observation
+  `time`, `cpu` (100% = one logical core; can exceed 100%), resident `memory` in
+  MiB, `uptime` in seconds, `players` and `player_status`
+  (`disabled`, `stopped`, `waiting`, `live`). Resource values measure only the
+  owned BeamMP process, never total host usage. CPU needs two observations.
+- Each history point contains Unix `time`, mean `cpu`/`memory`, `cpu_peak`,
+  `memory_peak`, peak concurrent `players` and successful `joins` observed in the
+  bucket. Missing observations are null. Summary contains `peak_players` and
+  `joins` for the selected period; repeat joins are included. No player names,
+  IPs, identifiers or chat are stored.
+- `PUT /api/servers/:id/statistics/telemetry`: `{enabled: boolean}`. Administrator,
+  CSRF and stopped-idle instance required; returns `{enabled}`. Explicitly installs
+  or removes only the bundled player plugin in a verified private instance-local
+  resource directory. Shared/external roots, links, changed existing plugin files
+  and overlaps are rejected. Configuration and other plugins are preserved.
+
+The panel collects resources every five seconds without browser subscriptions,
+stores ten-second detail for 24 hours and minute summaries for 30 days, and prunes
+hourly/on startup. The UI defaults to `1h`; the API's omitted-range default stays
+`24h`. Existing minute history is preserved for longer ranges, but cannot supply
+new ten-second detail retroactively. Player snapshots
+arrive through the bundled server Lua plugin; an unresponsive/missing plugin
+shows unknown player data. No client mod or new network listener is required.
+The UI polls the authenticated endpoint; statistics have no Socket.IO subscription
+and do not require console access. Historical data survives restarts and is removed
+with its server registration. Existing member grants are retained; administrators
+must explicitly add statistics_view to existing members.
 
 ## Configuration
 

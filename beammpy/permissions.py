@@ -5,7 +5,7 @@ from flask_login import current_user
 
 from .errors import PanelError
 
-PERMISSIONS = ("power", "maps", "mods_toggle", "mods_upload", "configure", "console_view", "console_command")
+PERMISSIONS = ("power", "maps", "mods_toggle", "mods_upload", "configure", "console_view", "console_command", "statistics_view")
 
 
 def require_admin():

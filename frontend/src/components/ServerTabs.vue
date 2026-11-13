@@ -5,7 +5,14 @@ import { useSession } from '../stores'
 const props = defineProps<{ serverId: string }>()
 const route = useRoute(), router = useRouter()
 const selected = computed(() => String(route.path.split('/').at(-1)))
-const tabs = computed(() => [{ path: 'console', label: 'Console', icon: 'terminal' }, { path: 'settings', label: 'Configuration', icon: 'tune' }, { path: 'maps', label: 'Maps', icon: 'map' }, { path: 'mods', label: 'Mods', icon: 'extension' }].filter(tab => tab.path !== 'settings' || useSession().can('configure', props.serverId)))
+const tabs = computed(() => [
+  { path: 'console', label: 'Console', icon: 'terminal' },
+  { path: 'settings', label: 'Configuration', icon: 'tune' },
+  { path: 'maps', label: 'Maps', icon: 'map' },
+  { path: 'mods', label: 'Mods', icon: 'extension' },
+  { path: 'statistics', label: 'Statistics', icon: 'monitoring' },
+].filter(tab => (tab.path !== 'settings' || useSession().can('configure', props.serverId))
+  && (tab.path !== 'statistics' || useSession().can('statistics_view', props.serverId))))
 function select(event: CustomEvent<{ value: string }>) {
   event.preventDefault()
   void router.push(`/servers/${props.serverId}/${event.detail.value}`)

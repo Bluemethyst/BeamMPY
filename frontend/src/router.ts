@@ -8,6 +8,7 @@ import MapsView from './views/MapsView.vue'
 import ModsView from './views/ModsView.vue'
 import AccountView from './views/AccountView.vue'
 import UsersView from './views/UsersView.vue'
+import StatisticsView from './views/StatisticsView.vue'
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -23,6 +24,7 @@ export const router = createRouter({
     { path: '/servers/:id/settings', component: SettingsView },
     { path: '/servers/:id/maps', component: MapsView },
     { path: '/servers/:id/mods', component: ModsView },
+    { path: '/servers/:id/statistics', component: StatisticsView },
     { path: '/:pathMatch(.*)*', redirect: '/servers' },
   ],
 })
@@ -38,5 +40,6 @@ router.beforeEach(async to => {
     const id = String(to.params.id)
     if (!session.user.is_admin && !(id in session.user.permissions)) return '/servers'
     if (to.path.endsWith('/settings') && !session.can('configure', id)) return `/servers/${id}/console`
+    if (to.path.endsWith('/statistics') && !session.can('statistics_view', id)) return `/servers/${id}/console`
   }
 })

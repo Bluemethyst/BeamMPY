@@ -18,6 +18,7 @@ const choices: { key: Permission; label: string }[] = [
   { key: 'mods_toggle', label: 'Enable and disable mods' }, { key: 'mods_upload', label: 'Upload maps and mods' },
   { key: 'configure', label: 'Edit configuration' }, { key: 'console_view', label: 'View console' },
   { key: 'console_command', label: 'Send console commands (can stop the server)' },
+  { key: 'statistics_view', label: 'View statistics' },
 ]
 async function load() {
   loading.value = true; error.value = ''

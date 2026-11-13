@@ -8,12 +8,20 @@ scripts. See [the roadmap](docs/ROADMAP.md) and
 [current verification status](docs/HANDOFF.md).
 The instance-scoped HTTP and console interfaces are documented in [API.md](docs/API.md).
 
+Version 0.4 adds a Statistics tab to each server: process CPU, resident memory,
+uptime and optional aggregate player activity, with 30 days of history. These are
+the selected server's measurements, not system-wide usage. See
+[statistics](docs/STATISTICS.md) for collection, permissions and player setup.
+
 Requires Python 3.11+. Node 22.12+ is needed only to build the frontend from source.
 
 For a release installation, use the wheel and matching installers ZIP. Follow
 [Windows/Linux installation, updates and account recovery](docs/INSTALLATION.md).
 The scripts create a private Python environment and keep runtime data separate;
-Node is not needed. Linux execution remains an outstanding verification gate.
+Node is not needed. Windows and Ubuntu 24.04 fixture, browser, packaging and
+installer checks passed on Python 3.11/3.13 in
+[v0.3.2 CI](https://github.com/Bluemethyst/BeamMPY/actions/runs/43400444506).
+Real Linux BeamMP execution and full authenticated player joins remain unverified.
 
 ```powershell
 python -m venv .venv
@@ -43,6 +51,16 @@ roll back. Do not copy an active SQLite database as a backup.
 Version 0.3 upgrades the database to schema 3 without changing existing user IDs,
 password hashes or server records. The oldest existing account becomes the sole
 administrator; any other historical accounts need explicit server assignments.
+
+Version 0.4 migrates to schema 4, adding statistics history and optional plugin
+registrations while preserving existing users, hashes, grants and server files.
+Older panel versions cannot open the upgraded database; keep the complete
+pre-upgrade backup when planning a rollback.
+
+Version 0.4.1 adds ten-second chart detail and defaults Statistics to Last hour.
+Schema 5 keeps existing minute history and plugin registrations while adding the
+finer observations. Detailed points start collecting after the updated panel starts.
+
 Restart the panel after updating the source;
 refreshing the browser alone does not load the new backend routes.
 

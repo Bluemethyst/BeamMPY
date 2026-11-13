@@ -2,6 +2,7 @@ import atexit
 import os
 from pathlib import Path
 import secrets
+import time
 
 from dotenv import dotenv_values
 from flask import Flask, jsonify, redirect, send_from_directory
@@ -16,6 +17,7 @@ from .errors import PanelError
 from .manager import Registry
 from .realtime import Realtime
 from .storage import Store
+from .statistics import Statistics
 
 
 def create_app(config=None):
@@ -67,6 +69,12 @@ def create_app(config=None):
         register_api(app, registry)
         realtime.register(registry)
         registry.reconcile()
+        statistics = Statistics(registry, interval=app.config.get("STATISTICS_INTERVAL", 5))
+        registry.statistics = statistics
+        app.extensions["statistics"] = statistics
+        statistics.prune(time.time())
+        if app.config.get("STATISTICS_AUTOSTART", True):
+            statistics.start()
     except BaseException:
         lock.release()
         raise
@@ -81,8 +89,11 @@ def create_app(config=None):
         try:
             registry.shutdown()
         finally:
-            lock.release()
-            atexit.unregister(shutdown)
+            try:
+                statistics.close()
+            finally:
+                lock.release()
+                atexit.unregister(shutdown)
 
     app.extensions["shutdown"] = shutdown
     atexit.register(shutdown)

@@ -1,6 +1,198 @@
 # BeamMPY handoff
 
-Updated 2026-11-13. Read ROADMAP.md before expanding scope.
+Updated 2026-11-14. Read ROADMAP.md before expanding scope.
+
+## Owner-approved repository checkpoint
+
+The owner reviewed the statistics UI and confirmed it looks good, then requested
+committing and pushing the accumulated work. Reviewed the complete tracked and
+untracked scope, main branch and origin destination. Remote main still matched
+the preceding da15a09 checkpoint. Include statistics source/tests, compiled local
+UI, Lua plugin, v0.4.1 metadata and documentation; runtime data, credentials,
+environments, screenshots and dist/ artifacts remain excluded.
+
+git diff --check passes. The same-session verification below remains current:
+128 backend tests, TypeScript/build, eight browser scenarios and a clean v0.4.1
+wheel install without Node. This repository checkpoint changes documentation only
+and does not rerun application suites. No live runtime data was used.
+Next: inspect Actions for the new push; real Linux BeamMP and authenticated player
+joins remain separate open gates. No milestone has been marked complete.
+
+## Current update: ten-second statistics detail, v0.4.1
+
+The owner requested more frequent chart points than the default five-minute
+aggregation. Statistics now defaults to Last hour and renders ten-second points,
+with the existing five-second collection/refresh cadence. Longer ranges retain
+their existing aggregation. Short-range tooltips/tables include seconds and the
+interval label reads 10 sec rather than a fractional number of minutes.
+
+Schema 5 adds statistics_recent, retaining ten-second summaries for 24 hours;
+existing minute history remains available for 30 days in longer views. Both
+resolutions are written in one transaction and each query reads only its intended
+resolution, so joins are not double-counted. Detail is persisted across restarts,
+pruned at startup/hourly and cascaded on server deletion. Existing users/hashes,
+grants, minute history and managed plugin registrations survive migration. There
+is no fabricated interpolation of old minute history into detailed points.
+
+Windows verification: 128 backend tests pass, with two real-binary opt-in cases
+skipped; TypeScript check/production build and all eight Playwright scenarios
+pass. New tests verify distinct ten-second readings, persistence, unchanged long
+rollups, retention/deletion and schema-4 history/plugin preservation. Browser
+coverage verifies the default 10-sec label and switching between fine/coarse
+ranges. The v0.4.1 wheel/source archive and installers ZIP are built; the clean
+wheel check passes without Node, including the ten-second endpoint and bundled
+UI/Lua plugin. git diff --check passes. Installer scripts are unchanged from the
+preceding verified v0.4.0 run. Package/UI/CI paths are 0.4.1.
+Lua telemetry and process/network controls
+are unchanged, so the preceding official Windows plugin smoke remains historical
+evidence; Linux and authenticated player joins were not rerun or claimed verified.
+
+No live users.db, .env, server directories or credentials were read/changed and
+the normal panel was not restarted. Restart the panel and refresh to use the
+new default view. Detailed points begin with this version's collection; old
+minute history is still available in longer ranges. Next: owner verification
+of chart cadence and the existing Linux/real-player checks. No milestone was
+marked complete and no commit/push was performed.
+
+## Previous implementation: per-server statistics, v0.4.0
+
+The owner approved statistics, explicitly scoped to each server's own Statistics
+tab. Preserved the preceding documentation changes and implemented both resource
+and aggregate player statistics. No host-wide totals or overview resource cards.
+
+One panel collector samples only the owned BeamMP process every five seconds,
+checking PID/creation time/executable and resetting CPU baselines on restart.
+CPU 100% is one logical core; memory is process RSS in MiB. Collection works
+without browsers or consoles. Schema 4 adds minute history and optional plugin
+registrations while preserving account IDs/hashes, existing grants, directories
+and TOML. Retention is 30 days with startup/hourly pruning; server deletion
+cascades history. Queries are bounded; missing observations are null, with
+explicit stopped/unavailable/stale states. Live bookkeeping is bounded.
+
+The Statistics tab uses M3E cards/menu/checkbox and local SVG CPU/memory lines
+and peak-online player bars, with averages/peaks, range selection, hover/keyboard
+inspection and data tables. Mobile chart coordinates keep axis text readable.
+Ranges: last hour, 24 hours, 7 days and 30 days. Poll generations prevent stale
+range responses and unmounted-view updates. A separate statistics_view member
+grant is enforced on every HTTP request. Existing grants are unchanged; creators
+receive it on new servers. Statistics do not grant console access or use sockets.
+
+Player collection is an explicit administrator/stopped-idle option, installing
+only the bundled Lua plugin in verified private instance-local resources.
+External/shared/linked/overlapping resources and existing/changed plugin files
+are protected. Framed stdout snapshots contain counts and cumulative successful
+joins; duplicate/out-of-order/old-process frames are ignored. Periodic snapshots
+reconcile disconnects. No player identities, names, IPs or chat are stored, and
+no client mod or network listener is needed. BeamMP's count may include syncing
+clients. Repeat successful visits count as joins.
+
+Verified on Windows/Python 3.13:
+
+- Backend: 125 passed, two opt-in real-binary cases skipped. New tests cover
+  ownership/restarts, collection/shutdown, migration preservation, rollups and
+  retention, scoped/revoked access, plugin file protection, player frame handling
+  and concurrent server creation.
+- TypeScript check/production build and all eight Playwright scenarios pass.
+  New browser coverage exercises collection without an open server view,
+  fixture stdout/player events, ranges, tables, reload/stopped history, member
+  restrictions/revocation, themes and 320/390px chart layouts. Screenshots in
+  frontend/test-results/: desktop-statistics.png and mobile-statistics-dark.png.
+  Visual inspection confirmed readable mobile axes.
+- Fresh official Windows BeamMP v3.9.3: both opt-in cases passed with the bundled
+  plugin's zero-player snapshots/process memory, IPv4-mapped/native IPv6 version
+  acceptance, UDP ping, stdin help, restart and stop. These were disposable private
+  loopback instances with throwaway keys, not authenticated game/player joins.
+- Final wheel/sdist build and clean-wheel installation without Node pass,
+  including UI/assets/licenses and enabling/removing the packaged Lua plugin.
+  Verified the wheel's source/UI bytes match the checkout and source archives
+  exclude runtime files. Windows v0.4.0 install/update/active-panel rejection and
+  installed-launcher smoke checks pass with disposable data preserved byte-for-byte.
+  Package/UI/CI paths are 0.4.0; the installers ZIP includes current STATISTICS.md.
+  git diff --check passes. No live data was used for any of these checks.
+
+Browser tests use a second disposable fixture on port 8792 to avoid the serial
+account suite's login-attempt window; production throttling is unchanged. Normal
+Windows permissions were needed for Playwright process teardown and networked
+build/download checks. The Python fixture keeps early exits ahead of telemetry
+imports; frame tests establish its real epoch before synthetic reload frames.
+
+Updated STATISTICS.md, API/UI, roadmap and installation/account documentation.
+No live users.db, .env, instances or credentials were read/changed; the normal
+panel was not stopped/restarted. Apply by restarting the panel and refreshing
+the browser. Resource data starts with the server; CPU needs two observations.
+Enable Collect player statistics while stopped, then start that server. Existing
+members need their View statistics checkbox selected explicitly.
+
+Next: owner verification with actual player joins and the manual Linux official
+BeamMP smoke workflow. Prior Linux CI evidence below is for v0.3.2, not this
+uncommitted feature. Real Linux BeamMP and authenticated joins remain open gates;
+no cross-platform milestone is marked complete. Other deferred features remain
+deferred. No commit or push was performed.
+
+## Previous discussion: proposed statistics feature
+
+The owner asked what to build next and suggested joined-player statistics,
+online-player bars and CPU/memory graphs. Reviewed process ownership/readers,
+storage, grants and server tabs, plus the official BeamMP server API documentation.
+The project already depends on psutil but has no metrics collector/history.
+BeamMP documents player-count and join/disconnect APIs; a bundled optional Lua
+telemetry plugin is proposed, not yet verified against a real binary.
+
+Recorded a separate proposed scope in STATISTICS.md and linked it from ROADMAP:
+resource CPU/resident-memory/uptime graphs first, then player counts/peaks/joins.
+Suggested five-second live sampling, minute history retained for 30 days,
+server-scoped statistics grants, explicit missing-data states and aggregate-only
+player telemetry. Automatic plugin installation would be administrator-controlled,
+stopped-only and limited to verified private instance resources.
+
+No feature was implemented or approved in this discussion. Existing documentation
+changes from the preceding CI review are preserved. No runtime data was accessed;
+no application suites were rerun. Documentation validation: git diff --check.
+Next: select the statistics scope, then implement resource collection/history and
+the Statistics view before integrating player telemetry. Real Linux BeamMP and
+authenticated player-join verification remain independent open checks.
+
+## Current session: CI review and next-scope recommendation
+
+The checkout was clean on main at `da15a09ec4374c229350cab93df816af44a36986`
+(v0.3.2), matching the supplied checkpoint. Read the contributor guide, roadmap,
+handoff, UI/API conventions, account/deployment scope, installation guide and
+README before reviewing remote results.
+
+Inspected [Checks run 43400444506](https://github.com/Bluemethyst/BeamMPY/actions/runs/43400444506),
+triggered by that push on 2026-11-13, including all four job step summaries and
+full logs through the GitHub connector. Windows and Ubuntu 24.04 both passed on
+Python 3.11 and 3.13. Every job records:
+
+- 102 backend tests passed; two opt-in real-binary cases skipped.
+- TypeScript checking (included in build), production build and seven Playwright
+  scenarios passed.
+- Wheel/sdist and installers ZIP built; clean-wheel UI/assets/licenses, accounts,
+  management API and CLI checks passed with Node absent from PATH.
+- Actual platform install/update, active-panel rejection and installed launcher
+  checks passed; disposable data was preserved byte-for-byte.
+
+The optional official BeamMP smoke step was skipped in all four jobs because this
+was a push run. Ubuntu fixture, package and shell-script execution are now
+verified; real Linux BeamMP and full authenticated player joins remain open.
+No failing checks or confirmed product regressions were found in this review.
+No milestone was marked complete. Earlier sections below retain historical
+verification statements; this section supersedes their unrun-CI/Linux-script status.
+
+Updated ROADMAP.md, README.md, INSTALLATION.md and ACCOUNTS_DEPLOYMENT.md to reflect
+the inspected evidence. This session changes documentation only. Local application
+suites were not rerun; `git diff --check` passes. No live runtime files or
+credentials were read or modified, and no panel or server was restarted.
+
+Recommended next task: finish real BeamMP release validation with the existing
+manual Checks workflow and `real_beammp=true`. Run the Windows/Ubuntu Python
+3.11/3.13 matrix and require both loopback address families to pass startup,
+version acceptance, UDP ping, stdin help, restart/version acceptance and stop.
+Record exact run/binary/platform versions and fix only confirmed failures before
+updating milestone status. This workflow was not dispatched in this session.
+Real player authentication remains a separate check with a real client and
+credentials. No new feature scope was selected or implemented; the deferred
+features remain deferred. See ROADMAP.md for the reviewable acceptance checks.
 
 ## Repository checkpoint
 
@@ -460,13 +652,15 @@ see Repository setup above.
 Use the project virtual environment. Backend: `python -m pytest`. UI:
 `npm --prefix frontend run build`. Browser: `npm --prefix frontend run test:e2e`.
 Package: `python -m build`, then
-`python tools/verify_distribution.py dist/beammpy-0.3.2-py3-none-any.whl`.
+`python tools/verify_distribution.py dist/beammpy-0.4.1-py3-none-any.whl`.
 Official real smoke: `python tools/run_real_smoke.py` (downloads an official binary
 and uses only temporary private instances). For a supplied binary, set
 BEAMMPY_SMOKE_BINARY and run tests/test_real_beammp.py explicitly.
 
-Next: run the configured Linux CI and real BeamMP smoke gate once a supported
-host/repository is available. Windows implementation and package checks are done.
+Next: run the existing manual CI workflow with `real_beammp=true` to verify real
+Linux BeamMP (and refresh Windows binary evidence). The latest push has already
+passed Windows/Ubuntu fixture, browser, package and installer checks; see the
+current-session review above. Full authenticated player joins remain separate.
 Mod/map management was subsequently authorised and implemented in v0.2 above;
 remaining backlog items still require a separate specification.
 

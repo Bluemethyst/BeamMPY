@@ -16,6 +16,12 @@ Member mod writes require private instance-local resources; shared/external or
 overlapping resource locations remain administrator-managed. Console commands
 also require console viewing permission.
 
+Version 0.4 adds a separate per-server View statistics grant for resource/player
+graphs. Existing member grants remain unchanged until the administrator selects
+that checkbox. New member-created servers include it in their initial grants.
+It does not require console access; enabling the optional player plugin remains
+an administrator-only stopped-server action. See STATISTICS.md.
+
 First setup creates the administrator once. Existing account IDs/password hashes
 survive migration; the oldest account becomes administrator and other historical
 accounts receive no server access until assigned. Creation and reset include a
@@ -50,4 +56,7 @@ revocation, disabled accounts, per-server/API/socket authorization and denied
 cross-server operations; M3E account/admin browser workflows and narrow layouts;
 installer failure/active-panel/data-preservation tests; backend, frontend, browser
 and clean-wheel checks. Execute actual Windows script install/update checks.
-Linux scripts and CI checks remain unverified until executed on a Linux host.
+Windows and Ubuntu 24.04 script/CI checks passed on Python 3.11 and 3.13 in
+[v0.3.2 CI](https://github.com/Bluemethyst/BeamMPY/actions/runs/43400444506),
+reviewed 2026-11-14. This verifies the account/deployment checks above; real Linux
+BeamMP and full authenticated player joins remain separate unverified gates.

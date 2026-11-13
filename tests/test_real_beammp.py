@@ -62,11 +62,19 @@ def test_real_binary_power_console_restart(app, bind_ip, client_ip):
     # A throwaway key and loopback/private binding prevent using real credentials
     # or exposing a test instance. A real public-server AuthKey is not required.
     write_config(instance.directory, {"IP": bind_ip, "Private": True, "AuthKey": str(uuid.uuid4())})
+    statistics = app.extensions["statistics"]
+    statistics.configure_plugin(instance.id, True)
     job = wait_job(app, registry.operation(instance.id, "start")["id"])
     if job["state"] != "succeeded":
         pytest.fail("Real BeamMP start failed: " + job["message"] + "\n" + "\n".join(line["text"] for line in instance.history))
     try:
         wait_for_beammp_startup(instance)
+        deadline = time.monotonic() + 15
+        while statistics.snapshot(instance)["live"]["players"] is None and time.monotonic() < deadline:
+            time.sleep(.1)
+        assert statistics.snapshot(instance)["live"]["players"] == 0, "Real BeamMP did not emit the bundled plugin's aggregate telemetry."
+        statistics.collect()
+        assert statistics.snapshot(instance)["live"]["memory"] > 0
         assert_version_handshake(client_ip, port)
         family = socket.AF_INET6 if ":" in client_ip else socket.AF_INET
         with socket.socket(family, socket.SOCK_DGRAM) as udp:
@@ -95,5 +103,9 @@ def test_real_binary_power_console_restart(app, bind_ip, client_ip):
     assert wait_real(registry.operation(instance.id, "restart")["id"])["state"] == "succeeded"
     wait_for_beammp_startup(instance, before_restart)
     assert_version_handshake(client_ip, port)
+    deadline = time.monotonic() + 15
+    while statistics.snapshot(instance)["live"]["players"] is None and time.monotonic() < deadline:
+        time.sleep(.1)
+    assert statistics.snapshot(instance)["live"]["players"] == 0
     assert wait_real(registry.operation(instance.id, "stop")["id"])["state"] == "succeeded"
     assert not instance.running()

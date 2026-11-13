@@ -26,7 +26,7 @@ def test_legacy_migration_preserves_hash_and_files_and_is_idempotent(tmp_path):
             store = app.extensions["store"]
             with store.connection() as db:
                 assert db.execute("SELECT password FROM users WHERE id=7").fetchone()[0] == password_hash
-                assert db.execute("PRAGMA user_version").fetchone()[0] == 3
+                assert db.execute("PRAGMA user_version").fetchone()[0] == 5
             records = store.all_servers()
             assert len(records) == 1
             assert records[0]["directory"] == str(legacy.resolve())

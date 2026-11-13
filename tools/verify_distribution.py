@@ -45,6 +45,15 @@ try:
     headers = {'X-CSRF-Token': session.json['csrf_token']}
     instance = app.extensions['registry'].create('Package smoke', 39001, 'package-test-key')
     assert len(client.get('/api/servers/' + instance.id + '/maps').json['maps']) == 14
+    statistics = client.get('/api/servers/' + instance.id + '/statistics?range=1h')
+    assert statistics.status_code == 200 and statistics.json['server_id'] == instance.id
+    assert statistics.json['bucket_seconds'] == 10
+    assert statistics.json['live']['status'] == 'stopped'
+    enabled = client.put('/api/servers/' + instance.id + '/statistics/telemetry', json={'enabled': True}, headers=headers)
+    assert enabled.status_code == 200
+    assert (instance.directory/'Resources/Server/BeamMPYStatistics/main.lua').is_file()
+    disabled = client.put('/api/servers/' + instance.id + '/statistics/telemetry', json={'enabled': False}, headers=headers)
+    assert disabled.status_code == 200
     assert client.get('/api/servers/' + instance.id + '/mods').json['mods'] == []
     selected = client.put('/api/servers/' + instance.id + '/maps', json={'path': '/levels/italy/info.json'}, headers=headers)
     assert selected.status_code == 200
@@ -64,7 +73,7 @@ try:
     assert deleted.status_code == 200 and not instance.directory.exists()
 finally:
     app.extensions['shutdown']()
-print('Clean wheel install: bundled UI/assets/licenses, accounts/password options/deletion, auth, maps, mods, deletion and CLI verified without Node.')
+print('Clean wheel install: bundled UI/assets/licenses, statistics/Lua plugin, accounts/password options/deletion, auth, maps, mods, deletion and CLI verified without Node.')
 """
         runtime_environment = {**os.environ, "PATH": str(python.parent) + os.pathsep + sys.base_prefix}
         subprocess.run([str(python), "-I", "-c", code], cwd=root, env=runtime_environment, check=True)
