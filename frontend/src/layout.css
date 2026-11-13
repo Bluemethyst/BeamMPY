@@ -34,7 +34,8 @@ a:focus-visible, .terminal:focus-visible { outline: 3px solid var(--blue); outli
 .brand { display: flex; align-items: center; gap: 12px; padding: 26px 16px 30px; color: var(--text); font-size: 25px; font-weight: 650; }
 .brand:hover { text-decoration: none; }
 .brand small { display: block; font-size: 9px; letter-spacing: 1.6px; margin-top: 4px; color: var(--muted); }
-.brand-y { color: var(--blue); }
+.brand-p { color: #ffd43b; }
+.brand-y { color: #3776ab; }
 .brand-mark, .server-art, .map-art, .empty-icon { display: grid; place-items: center; flex-shrink: 0; color: var(--m3e-sys-color-on-secondary-container); background: var(--m3e-sys-color-secondary-container); border-radius: var(--m3e-sys-shape-corner-large); width: 48px; height: 48px; }
 .brand-mark { background: var(--m3e-sys-color-primary); color: var(--m3e-sys-color-on-primary); }
 .sidebar-bottom { margin-top: auto; padding: 28px 20px; }
@@ -97,6 +98,7 @@ a:focus-visible, .terminal:focus-visible { outline: 3px solid var(--blue); outli
 .operation-status { margin-block: 16px; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 8px; }
 .back-link { margin-bottom: 24px; }
 .instance-caption { display: flex; align-items: center; gap: 16px; font-size: 14px; color: var(--muted); margin-top: 16px; flex-wrap: wrap; }
+.server-tabs { --m3e-comp-tabs-scrollable-edge-padding: 0px; }
 .server-tabs .m3e-tabs { margin-bottom: 28px; }
 /* The terminal is application content, with its own legible log presentation. */
 .console-panel { border-radius: var(--m3e-sys-shape-corner-large); overflow: hidden; background: var(--m3e-sys-color-surface-container); }

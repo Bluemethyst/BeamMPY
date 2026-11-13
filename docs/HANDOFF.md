@@ -2,6 +2,84 @@
 
 Updated 2026-11-13. Read ROADMAP.md before expanding scope.
 
+## Current UI refinements: v0.2.3
+
+The owner requested the linked M3E tabs, correct left alignment, no redundant
+Workspace heading, yellow P/blue Y Python branding, removal of the configuration
+map dropdown, and a palette menu beside logout. All are implemented. ServerTabs
+already used actual M3E elements; it now uses primary tabs and sets the public
+scrollable edge-padding token to zero, removing the 52px inset. Keyboard manual
+activation, tab panels and guarded navigation remain covered by browser tests.
+Removed the topbar titles and overview/sidebar Workspace labels; All servers.
+remains the page heading. Branding colours are fixed independently of themes.
+
+MapPicker and the unused UiSelect adapter are retired. Settings save excludes
+Map, so saving unrelated settings cannot overwrite map-manager changes. Maps
+remain available exclusively through their manager tab.
+
+AppearanceMenu uses real M3E menu/submenu radio items and a M3E custom-colour
+dialog. It includes light/dark/system, Blue/Purple/Teal/Green/Amber/Rose, a hex
+field plus native colour picker, Vibrant/Tonal spot/Expressive/Neutral/Monochrome
+styles, and reset. appearance.ts generates full light/dark roles in the browser
+using M3E createTheme. Validated preferences persist locally and follow OS changes
+in system mode; malformed preferences safely fall back. The default build-time
+blue stylesheet still provides the initial theme. All assets remain local.
+
+Verification: TypeScript/production build and all 4 Playwright scenarios pass.
+New checks cover tab/content alignment, logo colours, removed controls and Map
+omission on save, preset/custom palette generation, invalid hex and cancellation,
+reload persistence, system appearance changes, reset and 320/390px layouts/menus.
+Screenshots are in frontend/test-results/, including mobile-appearance.png and
+mobile-teal.png. This session changes UI and docs; the preceding join fix remains
+in the workspace. Refresh the browser after building. No production instances or
+credentials were used for these tests; full game-join/Linux gates remain as below.
+
+The v0.2.3 wheel and source archive are built in dist/. A clean wheel install
+verifies the bundled UI/assets/licenses and API/CLI checks with Node absent from
+PATH. Package versions, the UI footer and the CI wheel path agree.
+
+## Current fix: client identification / bad address cast, v0.2.2
+
+The owner reported all joins failing with code C `bad address cast` and Socket
+Closed Code 3 while a standalone server worked. Read-only inspection confirmed
+the managed v3.9.3 instance used IP=0.0.0.0, which came from the panel's default.
+BeamMP itself defaults to ::, disables V6ONLY for TCP/UDP, and calls to_v6() on
+the incoming peer before version/auth handling. An IPv4 listener triggers the
+exception. Sources: https://github.com/BeamMP/BeamMP-Server/blob/v3.9.3/src/Settings.cpp
+and https://github.com/BeamMP/BeamMP-Server/blob/v3.9.3/src/TNetwork.cpp.
+
+Corrected the new-instance and missing-IP defaults to ::. At the next start,
+legacy 0.0.0.0 is atomically repaired to :: only after dual-stack port checks
+pass and while the instance is stopped; the console explains the repair. TOML
+comments, keys and other sections survive. Explicit interface binds are not
+rewritten; IPv4-only binds receive a console warning and settings guidance.
+Preflight TCP/UDP probes now disable IPV6_V6ONLY too, catching occupied IPv4 ports.
+
+Verification: 68 backend tests pass; 2 real-binary cases are opt-in in the normal
+run. Regression checks cover defaults, stopped-only/idempotent repair, comments
+and AuthKey preservation, failed atomic writes, specific-interface preservation,
+and TCP/UDP IPv4 conflicts. The fresh official Windows v3.9.3 smoke run passes
+both IPv4-mapped and native IPv6 loopback tests: code C + framed version packet
+accepted (A), UDP ping replied (P), stdin help, restart + handshake, and stop.
+This tests identification, not a full authenticated game/player join. The
+earlier smoke run only tested power/console and had missed this networking bug.
+Smoke tests now wait for BeamMP's own startup summary before version negotiation.
+TypeScript/build and all 3 browser scenarios pass. Browser creation now chooses
+an available disposable port so the tests do not collide with an active server
+on the normal 30814 port. The v0.2.2 wheel/source archive are built in dist/.
+A clean wheel installation also passes bundled assets/licenses, authentication,
+maps/mods/deletion and CLI checks with Node absent from PATH.
+
+Automatic approval review rejected selecting a test executable via the live DB;
+the reproduction and verification instead downloaded a fresh official binary
+and used temporary loopback-only installations with throwaway keys. No production
+files were written and the user's running instance was not stopped or restarted.
+
+Apply: restart the panel to load the fix, then start the managed instance. The
+legacy wildcard will be repaired automatically. Immediate workaround with the
+current panel: stop the instance, set Configuration > Bind IP to ::, save and
+start. Next: have the owner retry a real game join; Linux smoke remains pending.
+
 ## Repository setup
 
 The owner added the Git repository on main with origin pointing to
@@ -177,7 +255,7 @@ see Repository setup above.
 Use the project virtual environment. Backend: `python -m pytest`. UI:
 `npm --prefix frontend run build`. Browser: `npm --prefix frontend run test:e2e`.
 Package: `python -m build`, then
-`python tools/verify_distribution.py dist/beammpy-0.2.1-py3-none-any.whl`.
+`python tools/verify_distribution.py dist/beammpy-0.2.3-py3-none-any.whl`.
 Official real smoke: `python tools/run_real_smoke.py` (downloads an official binary
 and uses only temporary private instances). For a supplied binary, set
 BEAMMPY_SMOKE_BINARY and run tests/test_real_beammp.py explicitly.

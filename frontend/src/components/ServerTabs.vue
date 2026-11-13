@@ -10,4 +10,4 @@ function select(event: CustomEvent<{ value: string }>) {
   void router.push(`/servers/${props.serverId}/${event.detail.value}`)
 }
 </script>
-<template><div class="server-tabs"><m3e-tabs label="Server navigation" variant="secondary" icon-position="leading" :scrollable.prop="true" :selected.prop="selected" @selection-change="select($event)"><m3e-tab v-for="tab in tabs" :key="tab.path" :value="tab.path" :icon="tab.icon">{{ tab.label }}</m3e-tab><m3e-tab-panel :value="selected"><slot /></m3e-tab-panel></m3e-tabs></div></template>
+<template><div class="server-tabs"><m3e-tabs label="Server navigation" variant="primary" icon-position="leading" :scrollable.prop="true" :selected.prop="selected" @selection-change="select($event)"><m3e-tab v-for="tab in tabs" :key="tab.path" :value="tab.path" :icon="tab.icon">{{ tab.label }}</m3e-tab><m3e-tab-panel :value="selected"><slot /></m3e-tab-panel></m3e-tabs></div></template>

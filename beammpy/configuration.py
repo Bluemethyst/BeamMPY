@@ -11,7 +11,9 @@ FIELDS = {
     "MaxPlayers": (int, 8), "MaxCars": (int, 1), "Private": (bool, True),
     "AllowGuests": (bool, True), "LogChat": (bool, True),
     "Debug": (bool, False), "InformationPacket": (bool, True),
-    "IP": (str, "0.0.0.0"), "Tags": (str, "Freeroam"),
+    # Match BeamMP's dual-stack default. An IPv4-only listener in 3.9.x
+    # fails code C identification when its peer is cast to an IPv6 address.
+    "IP": (str, "::"), "Tags": (str, "Freeroam"),
 }
 
 

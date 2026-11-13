@@ -9,7 +9,7 @@ import psutil
 import pytest
 import tomlkit
 
-from beammpy.configuration import read_config
+from beammpy.configuration import read_config, write_config
 from beammpy.errors import PanelError
 from beammpy.manager import Registry
 from conftest import headers, make_server, wait_job
@@ -83,6 +83,60 @@ def test_occupied_port(app):
         instance = make_server(app, port=port)
         assert operate(app, instance, "start")["state"] == "failed"
         assert "occupied" in instance.snapshot()["error"]
+
+
+def test_new_instance_uses_dual_stack_default(app):
+    instance = make_server(app)
+    assert read_config(instance.directory)["IP"] == "::"
+
+
+def test_legacy_wildcard_is_repaired_only_on_start(app):
+    instance = make_server(app)
+    path = instance.directory / "ServerConfig.toml"
+    path.write_text('# owner comment\n[General]\nIP="0.0.0.0" # bind comment\nPort=38001\nAuthKey="preserved-test-key"\n[Plugin]\nKeep=42 # plugin comment\n', encoding="utf-8")
+    original = path.read_text(encoding="utf-8")
+    assert read_config(instance.directory)["IP"] == "0.0.0.0"
+    assert path.read_text(encoding="utf-8") == original
+    assert operate(app, instance, "start")["state"] == "succeeded"
+    content = path.read_text(encoding="utf-8")
+    document = tomlkit.parse(content)
+    assert document["General"]["IP"] == "::"
+    assert document["General"]["AuthKey"] == "preserved-test-key"
+    assert document["Plugin"]["Keep"] == 42
+    assert all(comment in content for comment in ("# owner comment", "# bind comment", "# plugin comment"))
+    assert any("legacy bind IP" in line["text"] for line in instance.history)
+    assert operate(app, instance, "restart")["state"] == "succeeded"
+    assert sum("legacy bind IP" in line["text"] for line in instance.history) == 1
+
+
+def test_failed_bind_repair_does_not_launch_or_modify_config(app, monkeypatch):
+    from beammpy import configuration
+    instance = make_server(app)
+    write_config(instance.directory, {"IP": "0.0.0.0"})
+    path = instance.directory / "ServerConfig.toml"
+    original = path.read_bytes()
+    def fail(*args):
+        raise PermissionError("fixture")
+    monkeypatch.setattr(configuration.os, "replace", fail)
+    assert operate(app, instance, "start")["state"] == "failed"
+    assert instance.process is None
+    assert path.read_bytes() == original
+
+
+def test_specific_ipv4_bind_is_preserved_with_actionable_warning(app):
+    instance = make_server(app)
+    write_config(instance.directory, {"IP": "127.0.0.1"})
+    assert operate(app, instance, "start")["state"] == "succeeded"
+    assert read_config(instance.directory)["IP"] == "127.0.0.1"
+    assert any("IPv4-only bind" in line["text"] for line in instance.history)
+
+
+@pytest.mark.parametrize("kind", [socket.SOCK_STREAM, socket.SOCK_DGRAM])
+def test_dual_stack_probe_rejects_occupied_ipv4_port(kind):
+    with socket.socket(socket.AF_INET, kind) as occupied:
+        occupied.bind(("0.0.0.0", 0))
+        with pytest.raises(PanelError, match="occupied"):
+            Registry.probe_ports({"IP": "::", "Port": occupied.getsockname()[1]})
 
 
 def test_shutdown_escalates_and_stops_children(app):

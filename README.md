@@ -50,7 +50,7 @@ only while the database has no accounts. The panel never rewrites `.env`.
   The panel also refuses to start an imported or existing server without a key.
   Keys remain masked in API responses and configuration forms.
 - Open **Maps** to choose a named stock map or a custom map discovered inside a
-  mod ZIP. Configuration also has a map dropdown. Stop the instance before
+  mod ZIP. Map selection lives in this tab. Stop the instance before
   changing its map; the selection takes effect on the next start.
 - Open **Mods** to upload ZIPs or enable/disable them. Disabling moves a ZIP out
   of the configured ResourceFolder's Client directory into `.beammpy-disabled`.
@@ -109,6 +109,15 @@ are reconciled using recorded process identity; unrelated processes are not kill
   appropriate TCP/UDP forwarding. The panel does not open firewalls or obtain keys.
 - Configuration edits require a stopped instance. Keep each instance's port
   unique. Configuration secrets are never included in ordinary API responses.
+- If joining reports `bad address cast` or `Socket Closed Code 3`, stop the
+  instance, set **Configuration → Bind IP** to `::`, save and start it again.
+  BeamMP 3.9.x casts incoming addresses to IPv6; an IPv4-only bind such as
+  `0.0.0.0` can start successfully but reject every join. Version 0.2.2 uses
+  BeamMP's dual-stack `::` default and repairs the old `0.0.0.0` wildcard on the
+  next instance start, preserving TOML comments, AuthKeys and other settings.
+  This repair enables both IPv4 and IPv6 listeners. It does not change specific
+  interface addresses. Use `::1` for local-only IPv6, or `::ffff:127.0.0.1` for
+  local-only IPv4. Restart the panel after upgrading to load this fix.
 - A missing UI message means the source checkout needs `npm --prefix frontend ci`
   followed by `npm --prefix frontend run build`.
 
@@ -117,7 +126,10 @@ are reconciled using recorded process identity; unrelated processes are not kill
 The interface uses locally bundled [M3E](https://m3e.kyralabs.dev/) components,
 icons and fonts throughout. Fields, navigation, tabs, menus, dialogs, switches,
 cards, progress indicators and snackbars share its generated blue light/dark
-theme. The theme menu also follows system appearance. No CDN is required.
+theme. The palette icon beside logout opens appearance settings: light/dark/system,
+six preset colours or a custom colour, palette styles and reset. M3E generates
+the complete palette immediately; your choice is saved in this browser. No CDN
+is required.
 See [UI conventions](docs/UI.md) before adding screens or controls.
 
 Run `python -m pytest`, `npm --prefix frontend run check`, and

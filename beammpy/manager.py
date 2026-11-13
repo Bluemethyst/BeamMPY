@@ -160,8 +160,18 @@ class Instance:
         if not config["has_auth_key"]:
             raise PanelError("Configure an AuthKey before starting this server.", 422)
         validate_config({key: value for key, value in config.items() if key != "has_auth_key"})
+        legacy_wildcard = config["IP"] == "0.0.0.0"
+        if legacy_wildcard:
+            config["IP"] = "::"
         self.registry.check_ports(self.id, config)
         self.registry.probe_ports(config)
+        if legacy_wildcard:
+            # Only repair the old panel wildcard, while stopped and after the
+            # replacement bind was checked. Preserve explicit interface binds.
+            write_config(self.directory, {"IP": "::"})
+            self.append("[Panel] Changed the legacy bind IP 0.0.0.0 to :: (IPv4 + IPv6) to fix BeamMP client identification.")
+        elif ":" not in config["IP"]:
+            self.append("[Panel] Warning: IPv4-only bind addresses can cause 'bad address cast' when joining BeamMP 3.9.x. Use ::1 for local-only access or an IPv4-mapped IPv6 address for a specific IPv4 interface.")
         self.refresh_secret()
         self.set_state("starting")
         # Avoid inherited BEAMMP_* overrides silently defeating per-instance TOML.
@@ -279,6 +289,10 @@ class Registry:
         for kind in (socket.SOCK_STREAM, socket.SOCK_DGRAM):
             try:
                 with socket.socket(family, kind) as probe:
+                    if family == socket.AF_INET6:
+                        # BeamMP disables V6ONLY for both TCP and UDP. Probe
+                        # the same dual-stack bind, including IPv4 conflicts.
+                        probe.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
                     if os.name == "nt":
                         probe.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
                     probe.bind((config["IP"], config["Port"]))

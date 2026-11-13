@@ -79,6 +79,25 @@ screens. Native form validation is preserved by the Vue text-field adapter;
 keyboard navigation, focus restoration, switches, menus and narrow configuration
 layouts are covered by the expanded browser scenarios. See UI.md for conventions.
 
+## Client connection correction (v0.2.2)
+
+v0.2.2 corrects the IPv4-only bind default that broke BeamMP 3.9.x joins.
+New instances use `::`; old wildcard configurations are repaired on start while
+stopped. Port probes match BeamMP's TCP/UDP dual-stack settings. The real Windows
+smoke check now exercises code C/version acceptance and UDP ping on IPv4/IPv6
+loopback, including a version handshake after restart. Full game/player joins
+still require a real client and credentials; Linux execution remains pending.
+
+## UI refinements (v0.2.3)
+
+Implemented the owner's next UI requests: M3E primary scrollable tabs aligned
+to the content edge, simplified All servers heading/header, Python-yellow P and
+Python-blue Y in the logo, map selection exclusively in the Maps tab, and a
+palette icon beside logout. Appearance uses M3E's runtime theme generator with
+light/dark/system modes, six preset colours, custom colour selection, five
+palette styles and reset. Preferences persist in this browser. Four browser
+scenarios and the production TypeScript/build verify these changes.
+
 ## Remaining later work
 
 General file management; backup/restore; monitoring/player tools; scheduling/updates;
