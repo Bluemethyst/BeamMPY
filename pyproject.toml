@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "beammpy"
+version = "0.2.1"
+description = "Self-hosted multi-instance BeamMP server management"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
+requires-python = ">=3.11"
+dependencies = [
+  "Flask==3.1.2", "Flask-Login==0.6.3", "Flask-SocketIO==5.6.0",
+  "python-socketio==5.16.0", "python-engineio==4.13.0",
+  "python-dotenv==1.2.1", "psutil==7.2.0", "requests==2.32.5",
+  "Werkzeug==3.1.4", "tomlkit==0.13.3", "waitress==3.0.2",
+  "portalocker==3.2.0", "distro==1.9.0"
+]
+
+[project.optional-dependencies]
+test = ["pytest==8.4.2", "build==1.3.0"]
+
+[project.scripts]
+beammpy = "beammpy.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["beammpy*"]
+
+[tool.setuptools.package-data]
+beammpy = ["web/**/*", "web/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
