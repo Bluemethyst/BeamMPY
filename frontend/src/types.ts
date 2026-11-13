@@ -1,6 +1,6 @@
 export type ServerState = 'installing' | 'stopped' | 'starting' | 'running' | 'stopping' | 'error'
 export interface Server {
-  id: string; name: string; directory: string; version: string | null
+  id: string; name: string; directory?: string; version: string | null
   state: ServerState; running: boolean; executable_exists: boolean; port: number | null; error: string | null
   operation?: Operation | null
 }
@@ -8,7 +8,12 @@ export interface Operation {
   id: string; server_id: string; action: string; state: 'running' | 'succeeded' | 'failed'; progress: number; message: string
 }
 export interface Session {
-  user: { id: string; username: string } | null; setup_required: boolean; csrf_token: string
+  user: Account | null; setup_required: boolean; csrf_token: string
+}
+export type Permission = 'power' | 'maps' | 'mods_toggle' | 'mods_upload' | 'configure' | 'console_view' | 'console_command'
+export interface Account {
+  id: string; username: string; is_admin: boolean; can_create_servers: boolean; must_change_password: boolean
+  permissions: Record<string, Permission[]>; enabled?: boolean
 }
 export interface Settings {
   Name: string; Description: string; Map: string; Port: number; MaxPlayers: number; MaxCars: number

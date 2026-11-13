@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useSession } from '../stores'
 const props = defineProps<{ serverId: string }>()
 const route = useRoute(), router = useRouter()
 const selected = computed(() => String(route.path.split('/').at(-1)))
-const tabs = [{ path: 'console', label: 'Console', icon: 'terminal' }, { path: 'settings', label: 'Configuration', icon: 'tune' }, { path: 'maps', label: 'Maps', icon: 'map' }, { path: 'mods', label: 'Mods', icon: 'extension' }]
+const tabs = computed(() => [{ path: 'console', label: 'Console', icon: 'terminal' }, { path: 'settings', label: 'Configuration', icon: 'tune' }, { path: 'maps', label: 'Maps', icon: 'map' }, { path: 'mods', label: 'Mods', icon: 'extension' }].filter(tab => tab.path !== 'settings' || useSession().can('configure', props.serverId)))
 function select(event: CustomEvent<{ value: string }>) {
   event.preventDefault()
   void router.push(`/servers/${props.serverId}/${event.detail.value}`)

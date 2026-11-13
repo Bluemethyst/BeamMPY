@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "beammpy"
-version = "0.2.3"
+version = "0.3.2"
 description = "Self-hosted multi-instance BeamMP server management"
 readme = "README.md"
 license = "MIT"

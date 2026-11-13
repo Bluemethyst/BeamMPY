@@ -38,7 +38,9 @@ jobs:
       - run: npm run test:e2e
         working-directory: frontend
       - run: python -m build
-      - run: python tools/verify_distribution.py dist/beammpy-0.2.3-py3-none-any.whl
+      - run: python tools/verify_distribution.py dist/beammpy-0.3.2-py3-none-any.whl
+      - run: python tools/package_installers.py
+      - run: python tools/verify_installers.py dist/beammpy-0.3.2-py3-none-any.whl
       - uses: actions/upload-artifact@v4
         with:
           name: packages-${{ matrix.os }}-${{ matrix.python }}

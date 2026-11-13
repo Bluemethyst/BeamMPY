@@ -12,7 +12,8 @@ milestone complete only when its acceptance checks pass.
   Use its custom elements or documented CSS DOM contracts, with public tokens for
   colours and sizing. Keep application CSS for layout and terminal content;
   do not add bespoke controls that mask the library. See docs/UI.md.
-- One administrator, multiple local servers; one panel process owns all children.
+- One administrator with permission-limited members and multiple local servers;
+  one panel process owns all children. Enforce member grants in HTTP and Socket.IO.
 - Server IDs must scope every control, console subscription, and configuration.
 - Never execute console input in a shell. Do not log AuthKeys or credentials.
 - Preserve existing users, password hashes, server directories, and TOML content.

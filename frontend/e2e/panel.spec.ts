@@ -24,8 +24,8 @@ test.describe.serial('Multi-instance management through the production HTTP stac
     await page.getByLabel('Password', { exact: true }).fill('short')
     expect(await page.getByLabel('Password', { exact: true }).evaluate((input: HTMLInputElement) => input.validity.tooShort)).toBe(true)
     await page.getByLabel('Show password', { exact: true }).uncheck()
-    await page.getByLabel('Password', { exact: true }).fill('browser-password-123')
-    await page.getByLabel('Confirm password', { exact: true }).fill('browser-password-123')
+    await page.getByLabel('Password', { exact: true }).fill('setup888')
+    await page.getByLabel('Confirm password', { exact: true }).fill('setup888')
     await page.getByRole('button', { name: 'Create administrator' }).click()
     await expect(page.getByRole('heading', { name: 'All servers.' })).toBeVisible()
     await expect(page.getByText('YOUR WORKSPACE', { exact: true })).toHaveCount(0)
@@ -91,8 +91,64 @@ test.describe.serial('Multi-instance management through the production HTTP stac
     await expect(page).toHaveURL(/\/settings$/)
     await page.getByRole('tab', { name: 'Console', exact: true }).click()
     await page.getByRole('alertdialog').getByRole('button', { name: 'Discard changes' }).click()
-    await page.getByRole('button', { name: 'Log out' }).click()
-    await expect(page).toHaveURL(/\/login$/)
+    await expect(page.locator('.console-connection')).toContainText('Connected')
+    // Hold an actual background poll across logout, then deliver its late 401.
+    // Checking the URL alone misses a session stuck loading on /login.
+    let pollStarted!: () => void, releasePoll!: () => void
+    const started = new Promise<void>(resolve => { pollStarted = resolve })
+    const release = new Promise<void>(resolve => { releasePoll = resolve })
+    const oldSession = await (await page.request.get('/api/auth/session')).json()
+    let refreshStarted!: () => void, releaseRefresh!: () => void
+    const refreshPending = new Promise<void>(resolve => { refreshStarted = resolve })
+    const refreshRelease = new Promise<void>(resolve => { releaseRefresh = resolve })
+    await page.route('**/api/auth/session', async route => {
+      refreshStarted(); await refreshRelease
+      await route.fulfill({ json: { ...oldSession, user: null } })
+    })
+    await page.route('**/api/auth/logout', async route => {
+      const response = await route.fetch()
+      // Ensure the real console disconnect begins a refresh before logout's
+      // response is applied, then hold that refresh until after logout.
+      await refreshPending
+      await route.fulfill({ response })
+    })
+    await page.route('**/api/servers', async route => {
+      pollStarted(); await release
+      await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ error: 'Authentication required.' }) })
+    })
+    try {
+      await started
+      const logoutResponse = page.waitForResponse(response => response.url().endsWith('/api/auth/logout'))
+      await page.getByRole('button', { name: 'Log out' }).click()
+      await expect(page).toHaveURL(/\/login$/)
+      await expect(page.getByRole('heading', { name: 'Sign in to BeamMPY', exact: true })).toBeVisible()
+      const signedOut = await (await logoutResponse).json()
+      const oldRefresh = page.waitForResponse(response => response.url().endsWith('/api/auth/session'))
+      releaseRefresh()
+      await (await oldRefresh).finished()
+      const lateResponse = page.waitForResponse(response => response.url().endsWith('/api/servers') && response.status() === 401)
+      releasePoll()
+      await (await lateResponse).finished()
+      await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
+      await expect(page.getByRole('heading', { name: 'Sign in to BeamMPY', exact: true })).toBeVisible()
+      await expect(page.getByText('Connecting to BeamMPY…', { exact: true })).toHaveCount(0)
+      // A stale console refresh must not overwrite the fresh logout CSRF token.
+      // Stop at submission so this check does not consume real login attempts.
+      let submitted!: (token: string | undefined) => void
+      const submission = new Promise<string | undefined>(resolve => { submitted = resolve })
+      await page.route('**/api/auth/login', async route => {
+        submitted(route.request().headers()['x-csrf-token'])
+        await route.fulfill({ status: 401, json: { error: 'Fixture credential submission completed.' } })
+      })
+      await page.getByLabel('Username', { exact: true }).fill('admin')
+      await page.getByLabel('Password', { exact: true }).fill('setup888')
+      await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+      expect(await submission).toBe(signedOut.csrf_token)
+    } finally {
+      releasePoll(); releaseRefresh(); refreshStarted()
+      await page.unroute('**/api/servers')
+      await page.unroute('**/api/auth/session'); await page.unroute('**/api/auth/logout'); await page.unroute('**/api/auth/login')
+    }
     expect(errors).toEqual([])
   })
 
@@ -100,7 +156,7 @@ test.describe.serial('Multi-instance management through the production HTTP stac
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/login')
     await page.getByLabel('Username', { exact: true }).fill('admin')
-    await page.getByLabel('Password', { exact: true }).fill('browser-password-123')
+    await page.getByLabel('Password', { exact: true }).fill('setup888')
     await page.getByRole('button', { name: 'Sign in', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'All servers.' })).toBeVisible()
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
@@ -147,7 +203,7 @@ test.describe.serial('Multi-instance management through the production HTTP stac
     page.on('pageerror', error => errors.push(error.message))
     await page.goto('/login')
     await page.getByLabel('Username', { exact: true }).fill('admin')
-    await page.getByLabel('Password', { exact: true }).fill('browser-password-123')
+    await page.getByLabel('Password', { exact: true }).fill('setup888')
     await page.getByRole('button', { name: 'Sign in', exact: true }).click()
     await expect(page).toHaveURL(/\/servers$/)
     const result = await (await page.request.get('/api/servers')).json()
@@ -237,7 +293,7 @@ test.describe.serial('Multi-instance management through the production HTTP stac
     })
     await page.reload()
     await page.getByLabel('Username', { exact: true }).fill('admin')
-    await page.getByLabel('Password', { exact: true }).fill('browser-password-123')
+    await page.getByLabel('Password', { exact: true }).fill('setup888')
     await page.getByRole('button', { name: 'Sign in', exact: true }).click()
     await expect(page).toHaveURL(/\/servers$/)
     const primary = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--m3e-sys-color-primary').trim())
@@ -297,4 +353,186 @@ test.describe.serial('Multi-instance management through the production HTTP stac
     await expect.poll(primary).toBe(initial)
     expect(errors).toEqual([])
   })
+
+  test('account recovery, per-server member permissions, temporary passwords and disabling users', async ({ page, browser }) => {
+    test.setTimeout(60000)
+    const errors: string[] = []
+    page.on('pageerror', error => errors.push(error.message))
+    await page.goto('/login')
+    await page.getByRole('button', { name: 'Forgot your password?', exact: true }).click()
+    await expect(page.getByRole('dialog', { name: 'Recover your account' })).toContainText('list-users')
+    await page.getByRole('dialog').getByRole('button', { name: 'Back to sign in', exact: true }).click()
+    await expect(page.getByRole('dialog', { name: 'Recover your account' })).toBeHidden()
+    await page.getByLabel('Username', { exact: true }).fill('admin')
+    await page.getByLabel('Password', { exact: true }).fill('setup888')
+    await expect(page.getByLabel('Username', { exact: true })).toHaveValue('admin')
+    await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+    await expect(page).toHaveURL(/\/servers$/)
+    const servers = (await (await page.request.get('/api/servers')).json()).servers
+    const assigned = servers[0]
+    await page.goto('/users')
+    await page.getByRole('button', { name: 'Create user', exact: true }).click()
+    await page.getByLabel('Username', { exact: true }).fill('browser-member')
+    await page.getByLabel('Password', { exact: true }).fill('member88')
+    await expect(page.getByLabel('Temporary password', { exact: true })).toBeChecked()
+    await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('minlength', '8')
+    await page.getByLabel(`Access ${assigned.name}`, { exact: true }).check()
+    await page.getByLabel('Change map', { exact: true }).check()
+    await page.getByLabel('View console', { exact: true }).check()
+    await page.setViewportSize({ width: 320, height: 740 })
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+    await page.screenshot({ path: 'test-results/mobile-user-permissions.png', fullPage: true })
+    await page.getByRole('button', { name: 'Save user', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'browser-member', exact: true })).toBeVisible()
+    await page.setViewportSize({ width: 1280, height: 900 })
+    const memberContext = await browser.newContext({ viewport: { width: 390, height: 844 } })
+    const memberPage = await memberContext.newPage()
+    memberPage.on('pageerror', error => errors.push(error.message))
+    async function memberLogin(password: string, username = 'browser-member') {
+      await memberPage.goto('/login')
+      await memberPage.getByLabel('Username', { exact: true }).fill(username)
+      await memberPage.getByLabel('Password', { exact: true }).fill(password)
+      await memberPage.getByRole('button', { name: 'Sign in', exact: true }).click()
+    }
+    try {
+      await memberLogin('member88')
+      await expect(memberPage).toHaveURL(/\/account$/)
+      await expect(memberPage.getByText('Choose your own password before managing servers.', { exact: false })).toBeVisible()
+      await expect(memberPage.getByLabel('New password', { exact: true })).toHaveAttribute('minlength', '8')
+      const fields = await memberPage.locator('.account-card form .field').all()
+      const fieldBounds = await Promise.all(fields.map(field => field.boundingBox()))
+      expect(Math.round(fieldBounds[1]!.y - fieldBounds[0]!.y - fieldBounds[0]!.height)).toBe(16)
+      expect(Math.round(fieldBounds[2]!.y - fieldBounds[1]!.y - fieldBounds[1]!.height)).toBe(16)
+      await memberPage.emulateMedia({ colorScheme: 'dark' })
+      await expect.poll(() => memberPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+      await memberPage.screenshot({ path: 'test-results/mobile-account.png', fullPage: true })
+      await memberPage.setViewportSize({ width: 1280, height: 900 })
+      const passwordButton = await memberPage.getByRole('button', { name: 'Change password', exact: true }).boundingBox()
+      const passwordField = await memberPage.locator('.account-card form .field').first().boundingBox()
+      expect(passwordButton!.width).toBeLessThan(passwordField!.width)
+      await memberPage.screenshot({ path: 'test-results/desktop-account.png', fullPage: true })
+      await memberPage.setViewportSize({ width: 390, height: 844 })
+      await memberPage.getByLabel('Current password', { exact: true }).fill('member88')
+      await memberPage.getByLabel('New password', { exact: true }).fill('owned888')
+      await memberPage.getByLabel('Confirm new password', { exact: true }).fill('mismatched-password-123')
+      await memberPage.getByRole('button', { name: 'Change password', exact: true }).click()
+      await expect(memberPage.getByRole('alert')).toHaveText('Passwords do not match.')
+      await memberPage.getByLabel('Confirm new password', { exact: true }).fill('owned888')
+      await memberPage.getByRole('button', { name: 'Change password', exact: true }).click()
+      await expect(memberPage).toHaveURL(/\/login$/)
+      await memberLogin('owned888')
+      await expect(memberPage).toHaveURL(/\/servers$/)
+      await expect(memberPage.locator('.server-card')).toHaveCount(1)
+      await expect(memberPage.getByRole('button', { name: 'Create server', exact: true })).toHaveCount(0)
+      await expect(memberPage.getByRole('button', { name: 'Import server', exact: true })).toHaveCount(0)
+      await memberPage.getByRole('link', { name: assigned.name, exact: true }).click()
+      await expect(memberPage.getByRole('button', { name: 'Start', exact: true })).toHaveCount(0)
+      await expect(memberPage.getByRole('tab', { name: 'Configuration', exact: true })).toHaveCount(0)
+      await expect(memberPage.getByLabel('Console command', { exact: true })).toHaveCount(0)
+      await expect(memberPage.locator('.console-connection')).toContainText('Connected')
+      const session = await (await memberPage.request.get('/api/auth/session')).json()
+      const denied = await memberPage.request.post(`/api/servers/${assigned.id}/start`, { data: {}, headers: { 'X-CSRF-Token': session.csrf_token } })
+      expect(denied.status()).toBe(403)
+      await memberPage.getByRole('tab', { name: 'Maps', exact: true }).click()
+      await memberPage.locator('.map-card').filter({ has: memberPage.getByRole('heading', { name: 'Utah, USA', exact: true }) }).getByRole('button', { name: 'Use this map', exact: true }).click()
+      await expect(memberPage.locator('.map-card.selected')).toContainText('Utah')
+      await memberPage.getByRole('tab', { name: 'Mods', exact: true }).click()
+      await expect(memberPage.getByRole('button', { name: 'Upload mods', exact: true })).toBeDisabled()
+      await page.getByRole('button', { name: 'Reset password for browser-member', exact: true }).click()
+      await page.getByLabel('Password', { exact: true }).fill('reset888')
+      await page.getByRole('button', { name: 'Set password', exact: true }).click()
+      await expect(memberPage).toHaveURL(/\/login$/)
+      await memberLogin('reset888')
+      await expect(memberPage).toHaveURL(/\/account$/)
+      await page.getByRole('button', { name: 'Reset password for browser-member', exact: true }).click()
+      await page.getByLabel('Password', { exact: true }).fill('fixed888')
+      await page.getByLabel('Temporary password', { exact: true }).uncheck()
+      await page.getByRole('button', { name: 'Set password', exact: true }).click()
+      await expect(page.getByRole('dialog', { name: 'Reset password for browser-member' })).toBeHidden()
+      await memberPage.reload()
+      await expect(memberPage).toHaveURL(/\/login$/)
+      await memberLogin('fixed888')
+      await expect(memberPage).toHaveURL(/\/servers$/)
+      await page.getByRole('button', { name: 'Edit browser-member', exact: true }).click()
+      await page.getByLabel('Account enabled', { exact: true }).uncheck()
+      await page.getByRole('button', { name: 'Save user', exact: true }).click()
+      await memberPage.reload()
+      await expect(memberPage).toHaveURL(/\/login$/)
+      await memberLogin('fixed888')
+      await expect(memberPage.getByRole('alert')).toContainText('Invalid username or password')
+      await expect(page.getByRole('article', { name: 'admin', exact: true })).toHaveClass(/m3e-card/)
+      await expect(page.getByRole('button', { name: 'Delete admin', exact: true })).toHaveCount(0)
+      await page.setViewportSize({ width: 320, height: 740 })
+      await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
+      await page.screenshot({ path: 'test-results/mobile-user-cards.png', fullPage: true })
+      await page.setViewportSize({ width: 1280, height: 900 })
+      await page.screenshot({ path: 'test-results/desktop-user-cards.png', fullPage: true })
+      await page.getByRole('button', { name: 'Delete browser-member', exact: true }).click()
+      await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel', exact: true }).click()
+      await expect(page.getByRole('button', { name: 'Delete browser-member', exact: true })).toBeFocused()
+      await page.getByRole('button', { name: 'Delete browser-member', exact: true }).click()
+      await page.getByRole('alertdialog').getByRole('button', { name: 'Delete user', exact: true }).click()
+      await expect(page.getByRole('article', { name: 'browser-member', exact: true })).toHaveCount(0)
+      // Unchecked on creation also permits direct sign-in with an eight-letter password.
+      await page.getByRole('button', { name: 'Create user', exact: true }).click()
+      await page.getByLabel('Username', { exact: true }).fill('permanent-member')
+      await page.getByLabel('Password', { exact: true }).fill('abcdefgh')
+      await page.getByLabel('Temporary password', { exact: true }).uncheck()
+      await page.getByRole('button', { name: 'Save user', exact: true }).click()
+      await expect(page.getByRole('article', { name: 'permanent-member', exact: true })).toBeVisible()
+      await memberLogin('abcdefgh', 'permanent-member')
+      await expect(memberPage).toHaveURL(/\/servers$/)
+      await page.getByRole('button', { name: 'Delete permanent-member', exact: true }).click()
+      await page.getByRole('alertdialog').getByRole('button', { name: 'Delete user', exact: true }).click()
+      await expect(memberPage).toHaveURL(/\/login$/)
+      await page.goto('/account')
+      await page.getByRole('button', { name: 'Sign out all devices', exact: true }).click()
+      await expect(page).toHaveURL(/\/login$/)
+      expect(errors).toEqual([])
+    } finally { await memberContext.close() }
+  })
 })
+
+for (const signInAgain of [false, true]) {
+  test(`a late unauthorized response preserves ${signInAgain ? 'the next sign-in' : 'the signed-out page'}`, async ({ page }) => {
+    // Isolate client response ordering without creating additional real logins
+    // or weakening authentication throttling in the disposable HTTP fixture.
+    let signedIn = true, csrfVersion = 0, sessionReads = 0, held = false
+    let pollStarted!: () => void, releasePoll!: () => void
+    const started = new Promise<void>(resolve => { pollStarted = resolve })
+    const release = new Promise<void>(resolve => { releasePoll = resolve })
+    const snapshot = () => ({ user: signedIn ? { id: '1', username: 'race-user', is_admin: true, can_create_servers: false, must_change_password: false, permissions: {} } : null, setup_required: false, csrf_token: `race-csrf-${csrfVersion}` })
+    await page.route('**/api/**', async route => {
+      const path = new URL(route.request().url()).pathname
+      if (path === '/api/auth/session') { sessionReads++; await route.fulfill({ json: snapshot() }); return }
+      if (path === '/api/auth/logout') { signedIn = false; csrfVersion++; await route.fulfill({ json: snapshot() }); return }
+      if (path === '/api/auth/login') { signedIn = true; csrfVersion++; await route.fulfill({ json: snapshot() }); return }
+      if (path === '/api/servers' && !held) {
+        held = true; pollStarted(); await release
+        await route.fulfill({ status: 401, json: { error: 'Authentication required.' } }); return
+      }
+      if (path === '/api/servers') { await route.fulfill({ json: { servers: [] } }); return }
+      throw new Error(`Unexpected mocked API request: ${path}`)
+    })
+    try {
+      await page.goto('/servers')
+      await started
+      await page.getByRole('button', { name: 'Log out', exact: true }).click()
+      await expect(page.getByRole('heading', { name: 'Sign in to BeamMPY', exact: true })).toBeVisible()
+      if (signInAgain) {
+        await page.getByLabel('Username', { exact: true }).fill('race-user')
+        await page.getByLabel('Password', { exact: true }).fill('abcdefgh')
+        await page.getByRole('button', { name: 'Sign in', exact: true }).click()
+        await expect(page.getByRole('heading', { name: 'All servers.' })).toBeVisible()
+      }
+      const readsBefore = sessionReads
+      const response = page.waitForResponse(value => value.url().endsWith('/api/servers') && value.status() === 401)
+      releasePoll()
+      await (await response).finished()
+      await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
+      await expect(page.getByRole('heading', { name: signInAgain ? 'All servers.' : 'Sign in to BeamMPY', exact: true })).toBeVisible()
+      await expect(page.getByText('Connecting to BeamMPY…', { exact: true })).toHaveCount(0)
+      expect(sessionReads).toBe(readsBefore)
+    } finally { releasePoll(); await page.unroute('**/api/**') }
+  })
+}

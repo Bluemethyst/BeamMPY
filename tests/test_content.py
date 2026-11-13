@@ -214,7 +214,7 @@ def test_version_one_database_upgrade_preserves_records(tmp_path):
     upgraded = Store(store.path)
     assert upgraded.server(row["id"])["name"] == "Existing"
     with upgraded.connection() as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 3
         assert db.execute("SELECT password FROM users").fetchone()[0] == "unchanged-hash"
 
 

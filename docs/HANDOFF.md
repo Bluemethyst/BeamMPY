@@ -2,6 +2,211 @@
 
 Updated 2026-11-13. Read ROADMAP.md before expanding scope.
 
+## Repository checkpoint
+
+The owner approved committing and pushing the accumulated v0.3.0–v0.3.2 work.
+Reviewed the tracked/untracked scope and origin/main destination. Source, tests,
+compiled UI, deployment scripts and documentation are included; runtime data,
+credentials, environments, screenshots and dist/ artifacts remain excluded.
+git diff --check passes. The same-session Windows verification below remains
+current; this checkpoint changes documentation only and does not rerun suites.
+Next: the owner's next requested scope, with Linux execution and authenticated
+player joins still separate gates. No live runtime data was changed.
+
+## Current fix: logout loading race, v0.3.2
+
+The owner reported logout leaving Connecting to BeamMPY indefinitely until a
+reload. Reproduced against the compiled v0.3.1 UI with a real disposable console:
+hold /api/servers across logout, wait for the login form, then release a 401.
+api.ts notified global expiry for this old request; expire() set ready=false,
+but replacing the already-current /login route skipped its session guard. The
+URL was correct while the login form disappeared. The browser test failed at
+the login-heading assertion and showed the owner's loading screen.
+
+api.ts now captures each fetch/upload's CSRF token and reports expiry only if
+that token is still current. main.ts ignores expiry when already signed out and
+forces genuine expiry through the route guard even when /login is current.
+Session reads track a generation so an old /auth/session response cannot replace
+a later login/logout/password result or its CSRF token. Authentication actions
+and expiry invalidate earlier reads. Console continuations check whether their
+view is still mounted before reconnecting. Revoked-session redirects still run
+when applying the anonymous session has already unmounted the console.
+
+The real-console regression additionally holds a disconnect-triggered session
+refresh across logout, then delivers the old anonymous snapshot. It asserts the
+login form stays visible and the next credential submission retains logout's
+fresh CSRF token. Two isolated browser response-order tests cover delayed 401s
+after logout and after a subsequent sign-in, without consuming real backend login
+attempts. Existing session-revocation and account workflows remain covered.
+
+Backend: 102 passed, 2 real-binary opt-in cases skipped. TypeScript/production
+build and all seven browser scenarios pass on Windows. The regression failed
+before the fix and passes afterwards, including token preservation and genuine
+session revocation. The wheel/source archive and installers ZIP are built in
+dist/. A clean wheel install passes bundled UI/assets/licenses, account and
+management API checks, and CLI with Node absent from PATH. git diff --check
+passes. Installer scripts are unchanged; Linux and player-join checks were not
+rerun or claimed verified in this UI session.
+Package/UI/CI paths are 0.3.2. No backend authentication rules, account hashes,
+database schema, BeamMP startup/bind repair or runtime data were changed.
+
+The preceding uncommitted work is preserved. Tests use disposable data only; the
+normal panel was not stopped or restarted. Refresh once to load the new bundled
+UI; later logouts should show a usable login form without reloading. Next: owner
+verification and the next requested scope; Linux execution and authenticated
+player joins remain separate gates. General file management stays deferred.
+
+## Previous refinements: accounts, v0.3.1
+
+The owner requested optional temporary passwords, My account spacing fixes, M3E
+cards around users, member deletion (never the administrator), and eight-character
+password minimums. Preserved the preceding uncommitted implementation and docs.
+
+Creation and password reset now accept temporary (boolean, default true) and
+expose a Temporary password checkbox. Checked requires a change at sign-in;
+unchecked permits direct use and clears any prior forced-change requirement.
+Both forms and all new-password UI/backend/CLI validation use a minimum of eight
+characters, with no required character classes. The 1,024-character upper limit
+and null rejection remain. Existing hashes and login compatibility are preserved.
+
+DELETE /api/users/:id requires administrator authentication, CSRF and current
+username confirmation. It removes the member's sessions and cascading grants,
+disconnects consoles, and keeps all server registrations/directories/files. The
+administrator is protected in the API and has no delete action. The UI uses the
+shared M3E confirmation dialog with cancellation/focus restoration and a warning
+that account deletion cannot be undone.
+
+Each user is an actual M3E filled card with responsive action layout. My account
+uses a single 16px field gap without the previous additive 20px field margin;
+buttons retain intrinsic widths. User-card actions have their own flex layout,
+avoiding the mobile page-header rule that squeezed button labels into columns.
+Generated UI remains local and uses M3E/public tokens. Version metadata, UI and
+CI artifact paths are 0.3.1; schema remains 3 with no migration needed.
+
+Verified Windows backend: 102 passed, 2 real-binary opt-in cases skipped.
+TypeScript/production build and all five browser scenarios pass. New tests cover
+eight-character setup/change/member/reset/CLI passwords, seven-character rejection, boolean flag validation,
+both directions of temporary status changes, deletion authorization/confirmation,
+immediate HTTP/socket revocation and preservation of member-created servers.
+Browser assertions cover both checkbox states on creation/reset, direct sign-in
+after a permanent reset, admin protection, confirmed/cancelled deletion and focus
+restoration, active-session revocation on deletion, 16px account field spacing,
+intrinsic button width and 320/390px layouts. Screenshots in frontend/test-results/
+include desktop-account.png, mobile-account.png, desktop-user-cards.png and
+mobile-user-cards.png. The v0.3.1 wheel, source archive and installers ZIP are
+built in dist/. A clean wheel install passes bundled assets/licenses, eight-letter
+passwords, account creation/deletion/revocation, existing management APIs and CLI
+checks with Node absent from PATH. git diff --check passes. The deployment scripts
+themselves are unchanged from the preceding Windows-verified version; Linux
+execution and real player joins were not rerun or claimed verified.
+
+No live users.db, .env, server directories or credentials were read or modified
+for testing. The normal panel was not restarted. Apply by restarting the panel,
+then refreshing the browser. Next external gate remains Linux CI/script/BeamMP
+execution; full authenticated player joins remain separate. General file
+management remains deferred.
+
+## Previous work: accounts and deployment, v0.3.0
+
+The owner deferred general file management and requested setup/login/logout,
+password recovery, Windows/Linux install/update scripts and additional users.
+They explicitly chose selected-server permissions with optional server creation.
+The separate scope is ACCOUNTS_DEPLOYMENT.md. Prior file-management review notes
+and FILE_MANAGEMENT.md are historical, deferred proposals; do not implement them
+as the next task. Existing uncommitted documentation was retained and updated.
+
+Implemented My account (change password/sign out all devices), administrator-only
+Users (create members, edit access, disable and reset temporary passwords), and a
+login recovery dialog. Temporary-password users must change their password before
+server access. Keep one administrator. Members have selected-server power, maps,
+mod toggling/upload, configuration, console view/commands; commands require viewing
+and can stop a server independently of the power checkbox. Creation is a separate
+global flag and grants the new server to its creator. Imports, server deletion,
+executable reinstallation and user administration remain admin-only. API and
+Socket.IO both enforce authorization, independent of UI visibility. Directory
+paths are omitted from member snapshots and all socket broadcasts. Account access
+changes, password changes/resets and disabling revoke HTTP and console sessions.
+Member mod writes require private instance-local resources. Shared/external roots
+or overlaps with another instance remain administrator-managed; unreadable other
+resource configurations fail closed for member writes. Regression checks cover
+both an assigned server pointing at another root and another server consuming its
+root. Existing administrator behavior and installations are preserved.
+
+Schema 3 adds flags and per-server grants without changing existing user IDs,
+password hashes, server directories or TOML. The oldest legacy account becomes
+administrator; other historical accounts start without assignments. Local CLI
+commands create-admin, list-users and reset-password take the stopped-panel lock
+before prompting. Recovery preserves grants and does not re-enable disabled users.
+The existing :: default and atomic legacy wildcard repair are unchanged.
+
+scripts/ contains Windows PowerShell and Linux sh install/update/launch wrappers
+and the standard-library manage.py bootstrap. Release wheels install into private,
+versioned virtual environments. Program and data paths must be separate. Updates
+probe the existing panel lock before installation and recheck it at activation;
+validation uses disposable data, not the user's DB. Failed environments are
+cleaned up, first installs remain retryable, and previous environments are retained.
+Installed launchers remember the data location and support local account commands.
+BEAMMPY_PYTHON can select a specific interpreter. No Node, OS services, firewall
+changes or BeamMP binary updates are introduced. INSTALLATION.md documents usage,
+manual backups before migration and recovery limitations. package_installers.py
+bundles scripts/docs alongside wheels. CI now exercises platform script workflows.
+
+Verification on Windows/Python 3.13: **93 backend tests pass, 2 real-binary opt-in
+cases skipped**; TypeScript/production build and **all 5 browser scenarios pass**.
+New coverage includes legacy multi-user preservation, forced password changes,
+HTTP/socket access isolation, allowed and denied actions, current-map protection,
+session revocation/reset/disable, local setup/recovery, active locks and installer
+failure cleanup. Browser coverage adds recovery dialog focus/timing, temporary
+passwords, map-only member access, rejected direct power calls, reset/disable,
+sign-out-all and the 320px M3E permissions dialog. Screenshot:
+frontend/test-results/mobile-user-permissions.png. Real PowerShell install/update,
+active-panel rejection and installed-launcher checks passed using paths with
+spaces and disposable data; users.db, .env, config and owner files were preserved
+byte-for-byte. The v0.3.0 wheel/source archive and installers ZIP are built in
+dist/. A clean wheel install verifies bundled UI/assets/licenses, accounts and
+temporary-password restrictions, authentication, maps, mods, deletion and CLI
+with Node absent from PATH. The final script smoke also passed with an explicit
+BEAMMPY_PYTHON override. Shell scripts have LF endings; their execution is still
+unverified on Linux. git diff --check passes.
+
+Version metadata, UI footer and CI wheel path are 0.3.0. No production data or
+credentials were used, and the normal panel was not stopped, started or migrated.
+Restart the panel after upgrading to load routes/schema changes, then refresh
+the browser. Next: run Ubuntu CI and the Linux installer/BeamMP checks on a real
+Linux host; full authenticated player joins remain an independent gate. No Linux
+support or cross-platform milestone is marked verified by this session.
+
+## Earlier review: deferred file management proposal
+
+Read AGENTS.md, ROADMAP.md, this handoff, UI.md, API.md and README.md before
+reviewing the implementation. Git status was clean at session start on main;
+HEAD was fba3b17. No existing changes needed preservation. Application behavior,
+compiled assets, runtime data and version 0.2.3 are unchanged in this session.
+
+Reviewed authenticated API/CSRF integration, per-instance idle and power locks,
+atomic configuration writes, resource resolution, mod/map guards, archive/upload
+limits, deletion ownership checks, Vue routing/M3E adapters and disposable tests.
+Important distinction: existing mod management supports external ResourceFolder
+paths; that resolver is not sufficient containment for a general file manager.
+Generic access to Client or .beammpy-disabled could bypass the current-map guard.
+New file access needs explicit ancestor/link/ownership and credential protection,
+including Windows junctions and hard links, plus download response handling.
+
+Recommended a Files tab initially confined to instance-local ResourceFolder/Server
+with browse, upload/download, create folders, rename files and delete files/empty
+folders. All changes require a stopped idle instance. No overwrites, raw text
+editing, recursive deletion, external/shared resources or new hosting features.
+The reviewable proposal and acceptance checks are in FILE_MANAGEMENT.md; ROADMAP
+links it as proposed work. The owner requested a scope proposal before coding;
+implementation has not started. Next: agree this boundary, then implement the
+dedicated file service/API and M3E Files view with the listed isolation tests.
+
+Verification for this documentation-only session: source/test inspection and
+`git diff --check`; no application suites or platform smoke checks were rerun.
+The prior 68-backend-test, four-browser-scenario and clean-wheel evidence remains
+historical evidence below. Linux execution and authenticated player joins remain
+open gates. No milestone has been marked complete.
+
 ## Current UI refinements: v0.2.3
 
 The owner requested the linked M3E tabs, correct left alignment, no redundant
@@ -255,7 +460,7 @@ see Repository setup above.
 Use the project virtual environment. Backend: `python -m pytest`. UI:
 `npm --prefix frontend run build`. Browser: `npm --prefix frontend run test:e2e`.
 Package: `python -m build`, then
-`python tools/verify_distribution.py dist/beammpy-0.2.3-py3-none-any.whl`.
+`python tools/verify_distribution.py dist/beammpy-0.3.2-py3-none-any.whl`.
 Official real smoke: `python tools/run_real_smoke.py` (downloads an official binary
 and uses only temporary private instances). For a supplied binary, set
 BEAMMPY_SMOKE_BINARY and run tests/test_real_beammp.py explicitly.

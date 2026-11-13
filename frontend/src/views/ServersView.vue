@@ -8,14 +8,14 @@ import UiCheck from '../components/UiCheck.vue'
 import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api, upload } from '../api'
-import { useNotices, useServers } from '../stores'
+import { useNotices, useServers, useSession } from '../stores'
 import type { Operation, Server } from '../types'
 import AppIcon from '../components/AppIcon.vue'
 import UiButton from '../components/UiButton.vue'
 import UiField from '../components/UiField.vue'
 import StateBadge from '../components/StateBadge.vue'
 import PowerControls from '../components/PowerControls.vue'
-const store = useServers(), notices = useNotices(), router = useRouter()
+const session = useSession(), store = useServers(), notices = useNotices(), router = useRouter()
 const search = ref(''), mode = ref<'create' | 'import'>('create'), name = ref(''), directory = ref(''), port = ref<number | string>(30814)
 const submitting = ref(false), error = ref(''), dialog = ref<InstanceType<typeof UiDialog>>()
 const archiveInput = ref<HTMLInputElement>()
@@ -40,6 +40,7 @@ async function submit() {
       const data = new FormData(); data.append('name', name.value); data.append('archive', archive.value)
       response = await upload('/servers/import', data, value => { progress.value = value })
     } else response = await api(mode.value === 'create' ? '/servers' : '/servers/import', 'POST', mode.value === 'create' ? { name: name.value, port: Number(port.value), auth_key: authKey.value } : { name: name.value, directory: directory.value })
+    if (!session.user?.is_admin) await session.load()
     store.update(response.server)
     if (response.operation) void store.track(response.operation)
     dialog.value?.close()
@@ -51,12 +52,12 @@ async function submit() {
 }
 </script>
 <template>
-  <div class="page-heading"><div><h1>All servers<span class="heading-period">.</span></h1><p class="muted">A little control. A lot of open road.</p></div><div class="heading-actions"><UiButton variant="outlined" @click="open('import')"><AppIcon name="import" />Import server</UiButton><UiButton @click="open('create')"><AppIcon name="plus" />Create server</UiButton></div></div>
+  <div class="page-heading"><div><h1>All servers<span class="heading-period">.</span></h1><p class="muted">A little control. A lot of open road.</p></div><div class="heading-actions"><UiButton v-if="session.user?.is_admin" variant="outlined" @click="open('import')"><AppIcon name="import" />Import server</UiButton><UiButton v-if="session.can('create_servers')" @click="open('create')"><AppIcon name="plus" />Create server</UiButton></div></div>
   <div class="stats-grid"><div class="stat m3e-card"><span class="stat-label">TOTAL INSTANCES</span><strong>{{ store.servers.length.toString().padStart(2, '0') }}</strong><span>On this host</span></div><div class="stat m3e-card"><span class="stat-label"><span class="status-dot online"></span>RUNNING</span><strong>{{ running.toString().padStart(2, '0') }}</strong><span>Ready for the road</span></div><div class="stat m3e-card"><span class="stat-label">STOPPED</span><strong>{{ (store.servers.length - running).toString().padStart(2, '0') }}</strong><span>{{ attention ? `${attention} need attention` : 'Ready when you are' }}</span></div></div>
   <div class="section-toolbar"><h2>Server instances <UiBadge>{{ store.servers.length }}</UiBadge></h2><UiSearch label="Search servers" v-model="search" placeholder="Search instances…" /></div>
   <div v-if="store.error" class="error-banner m3e-surface m3e-surface--shape-large" role="alert"><span>{{ store.error }}</span><UiButton variant="text" @click="store.refresh">Retry</UiButton></div>
   <div v-if="store.loading && !store.servers.length" class="empty-state m3e-card" role="status"><m3e-loading-indicator aria-label="Loading servers" /><p>Loading instances…</p></div>
-  <div v-else-if="!store.servers.length" class="empty-state m3e-card"><span class="empty-icon"><AppIcon name="servers" /></span><h2>Start your first engine</h2><p>Create a fresh BeamMP server or bring an existing installation into your workspace.</p><UiButton @click="open('create')"><AppIcon name="plus" />Create your first server</UiButton></div>
+  <div v-else-if="!store.servers.length" class="empty-state m3e-card"><span class="empty-icon"><AppIcon name="servers" /></span><h2>{{ session.can('create_servers') ? 'Start your first engine' : 'No servers assigned' }}</h2><p>{{ session.can('create_servers') ? 'Create a fresh BeamMP server for your workspace.' : 'Ask the administrator to assign server access.' }}</p><UiButton v-if="session.can('create_servers')" @click="open('create')"><AppIcon name="plus" />Create your first server</UiButton></div>
   <p v-else-if="!filtered.length" class="empty-state m3e-card">No instances match “{{ search }}”.</p>
   <div v-else class="server-grid"><article v-for="server in filtered" :key="server.id" class="server-card m3e-card m3e-card--outlined" :class="{ 'is-running': server.running }"><div class="server-card-top"><span class="server-art"><AppIcon name="servers" /></span><StateBadge :state="server.state" /></div><h3><RouterLink :to="`/servers/${server.id}/console`">{{ server.name }}</RouterLink></h3><p class="server-subtitle">{{ server.version || 'Imported installation' }}</p><div class="server-metadata"><div><span>PORT</span><strong>{{ server.port ?? '—' }}</strong></div><div><span>HOST</span><strong>Local machine</strong></div></div><p v-if="server.error" class="inline-error" role="alert">{{ server.error }}</p><div v-if="store.operations[server.id]" class="operation-status" role="status"><UiProgress :value="store.operations[server.id].progress" /><span>{{ store.operations[server.id].message }}</span></div><div class="server-card-actions"><PowerControls :server="server" /><RouterLink :to="`/servers/${server.id}/console`" class="console-link m3e-icon-button" :aria-label="`Open ${server.name} console`"><AppIcon name="arrow" /></RouterLink></div></article></div>
   <div class="host-note"><AppIcon name="servers" /><span>Each instance has its own configuration, resources, and console.</span><span class="host-note-end">ONE HOST. EVERY INSTANCE.</span></div>

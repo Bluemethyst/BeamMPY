@@ -8,14 +8,78 @@ Errors return `{error: "message"}` with the appropriate HTTP status; in particul
 conflicting operation or configuration. JSON bodies are limited to 64 KiB;
 multipart ZIP uploads default to 2 GiB per file (BEAMMPY_UPLOAD_LIMIT).
 
+Authenticated `user` contains `id`, `username`, `is_admin`, `can_create_servers`,
+`must_change_password` and `permissions` (server ID to an array of permission
+names). A member can view only assigned servers, including assignments with an
+empty array. Member snapshots omit host directory paths. Unassigned server access
+returns 404; an assigned server with insufficient action permission returns 403.
+Temporary-password accounts must change their password before any server access.
+The sole administrator has all permissions. Action names are:
+
+| Permission | Allows |
+| --- | --- |
+| power | Start, stop and restart |
+| maps | Select an available map |
+| mods_toggle | Enable or disable existing mods |
+| mods_upload | Upload map/vehicle ZIPs (uploads are enabled) |
+| configure | Read masked configuration and edit typed settings |
+| console_view | Subscribe to history, status and console output |
+| console_command | Send BeamMP stdin commands, including commands that stop it |
+
+Map changes through the config API also require maps permission. Commands require
+console_view; commands and power are independent grants. Server creation uses the global can_create_servers
+flag; creators receive all member permissions on the newly created server only.
+Imports, deletion, executable reinstallation and user administration are admin-only.
+Read-only map/mod catalogs and operation polling require assignment to that server.
+Member mod mutations additionally require a private instance-local resource root;
+shared, overlapping or external resource folders require administrator access.
+If another instance's resource ownership cannot be read, member mod writes fail
+closed until the administrator corrects the configuration. Existing administrator
+map/mod behavior is preserved.
+
 ## Authentication
 
 - `POST /api/auth/setup`: `{username, password}` creates the administrator and
-  signs in. Only available while no accounts exist; new passwords need 12–1024
+  signs in. Only available while no accounts exist; new passwords need 8–1024
   characters. Setup is serialized in a database transaction.
 - `POST /api/auth/login`: `{username, password}` signs in with an existing account.
 - `POST /api/auth/logout`: revokes this session and disconnects its live consoles.
+- `POST /api/auth/password`: `{current_password, new_password}` changes your
+  password (8–1024 characters), clears a temporary-password requirement and
+  signs out all sessions, including this one. Returns the signed-out session.
+- `POST /api/auth/logout-all`: signs out every session for the current user and
+  disconnects consoles. Returns the signed-out session.
 - Responses use the session shape above; existing password hashes are preserved.
+
+## Account administration
+
+All `/api/users` endpoints require administrator authentication and mutations
+require CSRF. There is no member registration or unauthenticated password reset.
+
+- `GET /api/users`: `{users, permissions}`. Accounts have the session user fields
+  plus enabled; password hashes and credentials are never included.
+- `POST /api/users`: `{username, password, temporary?: true, enabled?: true,
+  can_create_servers?: false, permissions?: {server_id: [permission, ...]}}`.
+  Creates a member; returns HTTP 201 with `{user}`. A temporary password requires
+  changing it at the next sign-in. Set temporary=false to use the supplied
+  password directly without a forced change. The flag must be a boolean.
+- `PUT /api/users/:id`: `{username, enabled?: true, can_create_servers?: false,
+  permissions?: {...}}` replaces the member's access, revokes all its sessions
+  and returns `{user}`. This is replacement, not a partial update; omitted
+  grants are removed. Unknown fields, servers or permissions are rejected.
+- `POST /api/users/:id/password`: `{password, temporary?: true}` sets the password
+  and replaces its temporary status, revokes all sessions; `{reset: true}`.
+  temporary=false clears an existing forced-change requirement.
+- `DELETE /api/users/:id`: `{confirmation}` permanently deletes a member when
+  confirmation equals its current username; returns `{deleted: true}`. Its
+  grants and sessions are removed and consoles disconnected. Its servers and
+  files are retained. Stale confirmation returns 409; missing accounts return 404.
+
+The administrator cannot be disabled, deleted, demoted or reset through member endpoints;
+use My account or offline CLI recovery. Members can be disabled or deleted after
+confirmation. New/reset passwords must contain 8–1024 characters without
+null characters. Server/account assignment changes invalidate existing cookies
+and disconnect Socket.IO sessions before further broadcasts.
 
 ## Instances and operations
 

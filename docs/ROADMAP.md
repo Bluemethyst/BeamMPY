@@ -2,7 +2,8 @@
 
 Agreed 2026-11-13: free, self-hosted Python/Flask panel with Vue 3, TypeScript,
 Vite, Pinia, Vue Router, and locally bundled M3E. One administrator manages
-multiple local BeamMP instances on Windows and supported Linux distributions.
+multiple local BeamMP instances and grants members access to selected servers.
+Windows and supported Linux distributions are intended targets.
 Release users need Python, not Node. Planned panel shutdown stops owned servers.
 Project license: MIT (confirmed by the owner during implementation).
 
@@ -98,7 +99,52 @@ light/dark/system modes, six preset colours, custom colour selection, five
 palette styles and reset. Preferences persist in this browser. Four browser
 scenarios and the production TypeScript/build verify these changes.
 
+## Accounts and deployment (v0.3.0)
+
+The owner deferred file management and requested account/setup/recovery work,
+Windows/Linux installation and updates, plus members with permissions on selected
+servers and optional server creation. The separate agreed scope is recorded in
+[ACCOUNTS_DEPLOYMENT.md](ACCOUNTS_DEPLOYMENT.md). Implementation adds My account,
+administrator-managed users, temporary-password changes, per-server HTTP/console
+authorization, local username discovery/administrator creation, and release-wheel
+install/update/launch scripts with isolated environments and separate data.
+
+Windows verification is recorded in HANDOFF.md. Linux script execution and real
+Linux BeamMP remain open gates; no cross-platform milestone is marked complete.
+Member mod writes are confined to private instance-local resources so grants
+cannot mutate another server's shared resources; the owner retains existing
+shared/external mod management. Windows has 93 passing backend tests, five
+browser scenarios and clean-wheel/script-install checks.
+See [INSTALLATION.md](INSTALLATION.md) for installation, update and recovery.
+
+## Account refinements (v0.3.1)
+
+Owner-requested corrections: optional Temporary password checkboxes on member
+creation/reset, confirmed member deletion with administrator protection, M3E
+cards for each user, corrected My account spacing and intrinsic-width buttons,
+and a consistent eight-character minimum for new passwords in setup, member
+management, self-service changes and the local CLI. Existing passwords/hashes
+remain valid. Deletion removes sessions/grants and retains servers/files. The
+temporary checkbox is checked by default; unchecking clears forced-change status.
+
+Windows verification: 102 backend tests, TypeScript/build, all five browser
+scenarios and a clean wheel install without Node pass. Details are in HANDOFF.md.
+Linux execution and full authenticated player joins remain independent gates.
+
+## Logout race correction (v0.3.2)
+
+Reproduced the owner's indefinite Connecting screen by holding a server poll
+across logout and delivering its 401 after the login page appeared. Late requests
+can no longer expire a different session: fetch/upload requests retain the CSRF
+token with which they started, expiry handling is idempotent when already signed
+out, and genuine expiry runs the session guard even on the same login route.
+Pending session refreshes cannot overwrite later authentication/logout results;
+unmounted console views cannot reconnect from delayed callbacks. Backend auth,
+CSRF enforcement and data remain unchanged. Windows TypeScript/build, all seven
+browser scenarios and 102 backend tests pass. Verification is recorded in HANDOFF.
+
 ## Remaining later work
 
-General file management; backup/restore; monitoring/player tools; scheduling/updates;
-additional users/permissions; remote hosts. No automatic server restarts are enabled.
+General file management (historical proposal in FILE_MANAGEMENT.md); backup/restore;
+monitoring/player tools; scheduling/BeamMP updates; remote hosts. No automatic
+server restarts are enabled.

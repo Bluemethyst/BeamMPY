@@ -2,11 +2,18 @@
 
 A self-hosted Flask and Vue panel for multiple local BeamMP servers. The first
 release provides administrator login, server installation/import, power controls,
-live consoles, configuration editing, map selection and mod management. See [the roadmap](docs/ROADMAP.md) and
+live consoles, configuration editing, map selection and mod management. Version
+0.3 adds member accounts, per-server permissions, account recovery and deployment
+scripts. See [the roadmap](docs/ROADMAP.md) and
 [current verification status](docs/HANDOFF.md).
 The instance-scoped HTTP and console interfaces are documented in [API.md](docs/API.md).
 
 Requires Python 3.11+. Node 22.12+ is needed only to build the frontend from source.
+
+For a release installation, use the wheel and matching installers ZIP. Follow
+[Windows/Linux installation, updates and account recovery](docs/INSTALLATION.md).
+The scripts create a private Python environment and keep runtime data separate;
+Node is not needed. Linux execution remains an outstanding verification gate.
 
 ```powershell
 python -m venv .venv
@@ -33,8 +40,10 @@ server directories to a safe location, then install the new wheel. Database
 migrations run on startup. Restore the saved data and old package together to
 roll back. Do not copy an active SQLite database as a backup.
 
-Version 0.2 upgrades the database to schema 2 without changing existing users,
-password hashes or server records. Restart the panel after updating the source;
+Version 0.3 upgrades the database to schema 3 without changing existing user IDs,
+password hashes or server records. The oldest existing account becomes the sole
+administrator; any other historical accounts need explicit server assignments.
+Restart the panel after updating the source;
 refreshing the browser alone does not load the new backend routes.
 
 ```text
@@ -43,6 +52,22 @@ beammpy reset-password --data-dir /path/to/data --username admin
 
 Stop the panel before resetting a password. Reset prompts locally and revokes sessions. Initial setup is available
 only while the database has no accounts. The panel never rewrites `.env`.
+
+Use `beammpy list-users --data-dir /path/to/data` to recover a forgotten username,
+or `beammpy create-admin --data-dir /path/to/data --username admin` for first setup
+without a browser. Local account commands require a stopped panel. **My account**
+changes your password or signs out all devices. **Users**, available to the
+administrator, creates/disables/deletes members, sets passwords and assigns
+per-server power, map, mod upload/toggle, configuration and console permissions.
+Server creation is a separate optional grant. New servers are assigned to their
+creator. New/reset members must choose their own password when **Temporary
+password** is checked (the default); uncheck it for a password they can use
+directly. New passwords require a minimum of eight characters. Deleting a member
+removes its sessions and grants while preserving its servers and files. The
+administrator cannot be deleted.
+Access changes revoke sessions. Imports, deletion, executable reinstallation and
+user administration stay administrator-only. Console commands can stop a server
+and should be granted with care. There is no public registration or email reset.
 
 ## Maps, mods, imports and deletion
 

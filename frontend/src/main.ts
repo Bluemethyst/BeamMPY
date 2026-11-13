@@ -23,8 +23,12 @@ import { useSession, useServers } from './stores'
 const app = createApp(App)
 app.use(createPinia())
 onExpired(() => {
-  useSession().expire(); useServers().reset()
-  void router.replace('/login')
+  const session = useSession()
+  // Already-signed-out pages must stay ready, even when old work returns 401.
+  if (!session.user) return
+  session.expire(); useServers().reset()
+  // Run the session guard even if a concurrent logout already opened /login.
+  void router.replace({ path: '/login', force: true })
 })
 app.use(router)
 app.mount('#app')

@@ -18,6 +18,7 @@ const server = computed(() => store.servers.find(item => item.id === id))
 const lines = ref<ConsoleLine[]>([]), command = ref(''), connected = ref(false), subscribed = ref(false), sending = ref(false)
 const follow = ref(true), terminal = ref<HTMLElement>(), connectionError = ref('')
 const socket = io({ autoConnect: false, transports: ['polling'], auth: { csrf_token: session.csrf } })
+let active = true
 async function scroll() { await nextTick(); if (follow.value && terminal.value) terminal.value.scrollTop = terminal.value.scrollHeight }
 socket.on('connect', () => {
   connected.value = true; connectionError.value = ''
@@ -29,7 +30,7 @@ socket.on('disconnect', async reason => {
   if (reason === 'io server disconnect') {
     await session.load()
     if (!session.user) await router.replace('/login')
-    else { socket.auth = { csrf_token: session.csrf }; socket.connect() }
+    else if (active) { socket.auth = { csrf_token: session.csrf }; socket.connect() }
   }
 })
 socket.on('terminal_history', (data: { server_id: string; lines: ConsoleLine[] }) => { if (data.server_id === id) { lines.value = data.lines.slice(-1000); void scroll() } })
@@ -49,8 +50,8 @@ async function send() {
     else command.value = ''
   })
 }
-onMounted(async () => { await store.refresh(); socket.connect() })
-onUnmounted(() => { socket.removeAllListeners(); socket.disconnect() })
+onMounted(async () => { await store.refresh(); if (active && session.can('console_view', id)) socket.connect() })
+onUnmounted(() => { active = false; socket.removeAllListeners(); socket.disconnect() })
 </script>
 <template>
   <RouterLink to="/servers" class="m3e-button m3e-button--text back-link"><AppIcon name="back" />All servers</RouterLink>
@@ -58,6 +59,6 @@ onUnmounted(() => { socket.removeAllListeners(); socket.disconnect() })
   <template v-else><div class="page-heading server-heading"><div><span class="eyebrow">SERVER INSTANCE</span><h1>{{ server.name }}</h1><div class="instance-caption"><StateBadge :state="server.state" /><span>Port {{ server.port ?? '—' }}</span><span>{{ server.version || 'Imported installation' }}</span></div></div><PowerControls :server="server" /></div>
   <ServerTabs :server-id="id">
   <div v-if="server.error" class="error-banner m3e-surface m3e-surface--shape-large" role="alert">{{ server.error }}</div><div v-if="store.operations[id]" class="operation-status" role="status"><UiProgress :value="store.operations[id].progress" /><span>{{ store.operations[id].message }}</span></div>
-  <section class="console-panel" aria-label="Server console"><header class="console-toolbar"><span><AppIcon name="terminal" />Live console</span><div><span class="console-connection"><span class="status-dot" :class="{ online: connected && subscribed }"></span>{{ connected && subscribed ? 'Connected' : 'Disconnected' }}</span><UiButton variant="text" @click="lines = []">Clear view</UiButton></div></header><div class="terminal" ref="terminal" tabindex="0" aria-label="Console output"><div v-if="!lines.length" class="terminal-empty"><AppIcon name="terminal" /><p>{{ server.running ? 'Waiting for server output…' : 'The road is quiet.' }}</p><span>{{ server.running ? 'New output will appear here.' : 'Start this instance to see its live console.' }}</span></div><div v-for="line in lines" :key="line.sequence" class="terminal-line"><time>{{ new Date(line.time * 1000).toLocaleTimeString([], { hour12: false }) }}</time><span>{{ line.text }}</span></div></div><form class="command-bar" @submit.prevent="send"><UiField class="command-field" label="Console command" v-model="command" placeholder="Enter a BeamMP command…" autocomplete="off" spellcheck="false" maxlength="4096" :disabled="!server.running || !subscribed || !!store.operations[id]" /><UiButton type="submit" variant="tonal" :busy="sending" :disabled="!server.running || !subscribed || !!store.operations[id] || !command.trim()">Send<AppIcon name="arrow" /></UiButton></form></section>
-  <div class="console-footnote"><UiCheck v-model="follow" label="Follow output" @change="scroll"  /><span>{{ lines.length }} / 1,000 lines · {{ connectionError || 'Commands run in the BeamMP server console.' }}</span></div><p class="directory-note"><strong>Instance directory</strong><code>{{ server.directory }}</code></p></ServerTabs></template>
+  <p v-if="!session.can('console_view', id)" class="info-banner m3e-surface m3e-surface--shape-large">Console access has not been granted for this server.</p><section v-else class="console-panel" aria-label="Server console"><header class="console-toolbar"><span><AppIcon name="terminal" />Live console</span><div><span class="console-connection"><span class="status-dot" :class="{ online: connected && subscribed }"></span>{{ connected && subscribed ? 'Connected' : 'Disconnected' }}</span><UiButton variant="text" @click="lines = []">Clear view</UiButton></div></header><div class="terminal" ref="terminal" tabindex="0" aria-label="Console output"><div v-if="!lines.length" class="terminal-empty"><AppIcon name="terminal" /><p>{{ server.running ? 'Waiting for server output…' : 'The road is quiet.' }}</p><span>{{ server.running ? 'New output will appear here.' : 'Start this instance to see its live console.' }}</span></div><div v-for="line in lines" :key="line.sequence" class="terminal-line"><time>{{ new Date(line.time * 1000).toLocaleTimeString([], { hour12: false }) }}</time><span>{{ line.text }}</span></div></div><form v-if="session.can('console_command', id)" class="command-bar" @submit.prevent="send"><UiField class="command-field" label="Console command" v-model="command" placeholder="Enter a BeamMP command…" autocomplete="off" spellcheck="false" maxlength="4096" :disabled="!server.running || !subscribed || !!store.operations[id]" /><UiButton type="submit" variant="tonal" :busy="sending" :disabled="!server.running || !subscribed || !!store.operations[id] || !command.trim()">Send<AppIcon name="arrow" /></UiButton></form></section>
+  <div v-if="session.can('console_view', id)" class="console-footnote"><UiCheck v-model="follow" label="Follow output" @change="scroll"  /><span>{{ lines.length }} / 1,000 lines · {{ connectionError || 'Commands run in the BeamMP server console.' }}</span></div><p v-if="server.directory" class="directory-note"><strong>Instance directory</strong><code>{{ server.directory }}</code></p></ServerTabs></template>
 </template>

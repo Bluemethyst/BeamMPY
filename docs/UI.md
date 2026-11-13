@@ -59,3 +59,25 @@ palette generation/persistence/custom validation, both themes and
 320/390 px configuration layouts. Run `npm --prefix frontend run build` before
 `npm --prefix frontend run test:e2e`; tests use the compiled production frontend.
 Refresh the browser after a source build. Release users need no Node tooling.
+
+My account uses the same M3E fields and buttons for password changes and signing
+out all devices. Field layout uses one 16px gap without additive bottom margins;
+buttons keep their intrinsic width. The administrator-only Users screen uses M3E
+cards, full-screen dialogs and checkboxes for selected-server permissions and
+temporary passwords. Creation and reset both expose the Temporary password
+checkbox, checked by default. Member deletion uses the shared M3E confirmation
+dialog and retains server files; no delete action appears for the administrator.
+All new-password fields enforce an eight-character minimum. Console command
+selection also grants console viewing;
+removing viewing clears command access. The login recovery dialog explains local
+maintenance without adding unauthenticated reset functionality. Member server
+controls reflect grants, while the backend independently enforces every action.
+
+Authentication updates can overlap background polling and console refreshes.
+Requests retain their starting CSRF token: an old 401 cannot expire a later
+logout/sign-in. Already-signed-out expiry is a no-op; genuine expiry re-runs the
+session guard even at /login. Session generations discard obsolete refresh
+results, and console callbacks cannot reconnect closed views. Revoked sessions
+must still redirect to login after clearing the user unmounts a console. Keep the logout regression's
+visible-login-form and fresh-token assertions; checking the URL alone misses a
+Connecting screen stuck on /login.

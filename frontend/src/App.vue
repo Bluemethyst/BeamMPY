@@ -16,7 +16,7 @@ const menuOpen = ref(false)
 const mobileMedia = matchMedia('(max-width: 760px)'), mobile = ref(mobileMedia.matches)
 function resizeNavigation() { mobile.value = mobileMedia.matches; menuOpen.value = false }
 mobileMedia.addEventListener('change', resizeNavigation)
-const destination = computed(() => route.params.id ? `/servers/${String(route.params.id)}/console` : '/servers')
+const destination = computed(() => ['/account', '/users'].includes(route.path) ? route.path : route.params.id ? `/servers/${String(route.params.id)}/console` : '/servers')
 function navigate(event: CustomEvent<{ value: string }>) { event.preventDefault(); void router.push(event.detail.value) }
 function drawerChanged(event: CustomEvent<{ open: boolean }>) { menuOpen.value = event.detail.open }
 const bootstrapError = ref('')
@@ -24,7 +24,7 @@ router.onError(error => { bootstrapError.value = error.message })
 let poll: ReturnType<typeof setInterval> | undefined
 watch(() => session.user, user => {
   if (poll) clearInterval(poll)
-  if (user) { void servers.refresh(); poll = setInterval(() => { if (!document.hidden) void servers.refresh() }, 2000) }
+  if (user && !user.must_change_password) { void servers.refresh(); poll = setInterval(() => { if (!document.hidden) void servers.refresh() }, 2000) }
   else servers.reset()
 }, { immediate: true })
 watch(() => route.fullPath, () => { menuOpen.value = false })
@@ -44,6 +44,8 @@ function reload() { location.reload() }
       <m3e-navigation-drawer :key="mobile ? 'modal' : 'permanent'" class="workspace-drawer" :variant="mobile ? 'modal' : 'permanent'" label="Main navigation" dialog-label="Workspace navigation" :open.prop="menuOpen" :selected.prop="destination" @selection-change="navigate($event)" @open-change="drawerChanged($event)">
         <RouterLink to="/servers" class="brand" aria-label="BeamMPY home"><span class="brand-mark"><AppIcon name="servers" /></span><span>BeamM<span class="brand-p">P</span><span class="brand-y">Y</span><small>SERVER CONTROLLER</small></span></RouterLink>
         <m3e-navigation-item value="/servers" icon="dns" :badge="String(servers.servers.length)">All servers</m3e-navigation-item>
+        <m3e-navigation-item value="/account" icon="person">My account</m3e-navigation-item>
+        <m3e-navigation-item v-if="session.user.is_admin" value="/users" icon="group">Users</m3e-navigation-item>
         <div v-if="servers.servers.length" class="m3e-navigation-drawer__headline">Your instances</div>
         <m3e-navigation-item v-for="server in servers.servers" :key="server.id" :value="`/servers/${server.id}/console`" :icon="server.running ? 'play_circle' : 'dns'">{{ server.name }}</m3e-navigation-item>
         <div class="sidebar-bottom"><div class="local-label"><AppIcon name="check_circle" />Local host</div><p>Built for the open road.</p><span class="version-label">BeamMPY · v{{ version }}</span></div>

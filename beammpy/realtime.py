@@ -6,6 +6,7 @@ from flask_login import current_user
 from flask_socketio import disconnect, emit, join_room, leave_room
 
 from .errors import PanelError
+from .permissions import require_server
 
 
 class Realtime:
@@ -29,7 +30,8 @@ class Realtime:
                 if not self.app.extensions["valid_token"](token):
                     self.socketio.server.disconnect(sid, namespace="/")
                     self.clients.pop(sid, None)
-            self.socketio.emit(event, data, to="server:" + data["server_id"])
+            payload = {key: value for key, value in data.items() if key != "directory"}
+            self.socketio.emit(event, payload, to="server:" + data["server_id"])
 
     def register(self, registry):
         socketio = self.socketio
@@ -41,6 +43,12 @@ class Realtime:
                 disconnect()
                 return False
             return True
+
+        def authorize(server_id, permission):
+            user = self.app.extensions["token_user"](self.clients.get(request.sid))
+            if user is None:
+                raise PanelError("Authentication required.", 401)
+            require_server(server_id, permission, user)
 
         @socketio.on("connect")
         def connect(auth):
@@ -62,10 +70,13 @@ class Realtime:
                 return {"ok": False, "error": "Authentication required."}
             try:
                 instance = registry.get(data.get("server_id") if isinstance(data, dict) else None)
+                authorize(instance.id, "console_view")
                 with instance.history_lock:
                     join_room("server:" + instance.id)
                     emit("terminal_history", {"server_id": instance.id, "lines": list(instance.history)})
-                    emit("server_status", {"server_id": instance.id, **instance.snapshot()})
+                    snapshot = instance.snapshot()
+                    snapshot.pop("directory", None)
+                    emit("server_status", {"server_id": instance.id, **snapshot})
                 return {"ok": True}
             except PanelError as exc:
                 return {"ok": False, "error": str(exc)}
@@ -82,6 +93,7 @@ class Realtime:
             try:
                 if not isinstance(data, dict):
                     raise PanelError("Command must include a server ID and text.")
+                authorize(data.get("server_id"), "console_command")
                 registry.get(data.get("server_id")).command_input(data.get("text"))
                 return {"ok": True}
             except PanelError as exc:

@@ -1,24 +1,35 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { api, setCsrf } from './api'
-import type { Operation, Server, Session } from './types'
+import type { Operation, Permission, Server, Session } from './types'
 
 export const useSession = defineStore('session', () => {
   const user = ref<Session['user']>(null)
   const setupRequired = ref(false)
   const csrf = ref('')
   const ready = ref(false)
+  let generation = 0
   function apply(value: Session) {
+    generation++
     user.value = value.user; setupRequired.value = value.setup_required
     csrf.value = value.csrf_token; setCsrf(value.csrf_token); ready.value = true
   }
-  async function load() { apply(await api<Session>('/auth/session')) }
+  async function load() {
+    const started = generation
+    const value = await api<Session>('/auth/session')
+    if (started === generation) apply(value)
+  }
   async function authenticate(mode: 'login' | 'setup', username: string, password: string) {
+    generation++
     apply(await api<Session>('/auth/' + mode, 'POST', { username, password }))
   }
-  async function logout() { apply(await api<Session>('/auth/logout', 'POST', {})) }
-  function expire() { user.value = null; ready.value = false }
-  return { user, setupRequired, csrf, ready, apply, load, authenticate, logout, expire }
+  async function logout() { generation++; apply(await api<Session>('/auth/logout', 'POST', {})) }
+  function can(permission: Permission | 'create_servers', serverId?: string) {
+    if (!user.value || user.value.must_change_password) return false
+    return user.value.is_admin || (permission === 'create_servers' ? user.value.can_create_servers : !!serverId && user.value.permissions[serverId]?.includes(permission))
+  }
+  function expire() { generation++; user.value = null; ready.value = false }
+  return { user, setupRequired, csrf, ready, apply, load, authenticate, logout, expire, can }
 })
 
 export const useNotices = defineStore('notices', () => {
@@ -42,7 +53,7 @@ export const useServers = defineStore('servers', () => {
   function update(server: Server) {
     const index = servers.value.findIndex(item => item.id === server.id)
     if (index < 0) servers.value.push(server)
-    else servers.value[index] = server
+    else servers.value[index] = { ...servers.value[index], ...server }
   }
   async function refresh() {
     if (request) return request

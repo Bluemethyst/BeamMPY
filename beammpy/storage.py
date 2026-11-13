@@ -10,7 +10,7 @@ class Store:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.connection() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version > 2:
+            if version > 3:
                 raise RuntimeError("Database is newer than this panel; upgrade BeamMPY.")
             if version < 1:
                 db.executescript("""
@@ -40,6 +40,20 @@ class Store:
                     PRAGMA user_version = 2;
                     COMMIT;
                 """)
+            if version < 3:
+                db.execute("BEGIN IMMEDIATE")
+                columns = {row["name"] for row in db.execute("PRAGMA table_info(users)")}
+                for name, default in (("is_admin", 0), ("enabled", 1),
+                                      ("can_create_servers", 0), ("must_change_password", 0)):
+                    if name not in columns:
+                        db.execute(f"ALTER TABLE users ADD COLUMN {name} INTEGER NOT NULL DEFAULT {default}")
+                db.execute("UPDATE users SET is_admin=1 WHERE id=(SELECT min(id) FROM users) "
+                           "AND NOT EXISTS (SELECT 1 FROM users WHERE is_admin=1)")
+                db.execute("CREATE TABLE IF NOT EXISTS server_grants ("
+                           "user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, "
+                           "server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE, "
+                           "permissions TEXT NOT NULL, PRIMARY KEY(user_id,server_id))")
+                db.execute("PRAGMA user_version=3")
 
     @contextmanager
     def connection(self):

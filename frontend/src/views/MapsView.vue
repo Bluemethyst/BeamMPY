@@ -4,7 +4,7 @@ import UiSearch from '../components/UiSearch.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { api } from '../api'
-import { useNotices, useServers } from '../stores'
+import { useNotices, useServers, useSession } from '../stores'
 import type { MapChoice } from '../types'
 import AppIcon from '../components/AppIcon.vue'
 import UiButton from '../components/UiButton.vue'
@@ -13,7 +13,7 @@ import ServerTabs from '../components/ServerTabs.vue'
 const id = String(useRoute().params.id), store = useServers(), notices = useNotices()
 const server = computed(() => store.servers.find(item => item.id === id))
 const maps = ref<MapChoice[]>([]), current = ref(''), search = ref(''), loading = ref(true), busy = ref(false), error = ref('')
-const locked = computed(() => !server.value || server.value.running || !!store.operations[id] || busy.value)
+const locked = computed(() => !useSession().can('maps', id) || !server.value || server.value.running || !!store.operations[id] || busy.value)
 const filtered = computed(() => maps.value.filter(item => `${item.name} ${item.mod || ''}`.toLowerCase().includes(search.value.toLowerCase())))
 async function load() {
   loading.value = true; error.value = ''

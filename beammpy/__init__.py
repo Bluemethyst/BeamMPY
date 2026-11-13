@@ -10,6 +10,7 @@ import portalocker
 from werkzeug.exceptions import HTTPException
 
 from .api import register_api
+from .accounts import register_accounts
 from .auth import register_auth
 from .errors import PanelError
 from .manager import Registry
@@ -62,6 +63,7 @@ def create_app(config=None):
         app.extensions["store"] = store
         app.extensions["registry"] = registry
         register_auth(app, store, realtime.revoke)
+        register_accounts(app, store, realtime.revoke)
         register_api(app, registry)
         realtime.register(registry)
         registry.reconcile()
