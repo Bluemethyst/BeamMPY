@@ -13,27 +13,38 @@ uptime and optional aggregate player activity, with 30 days of history. These ar
 the selected server's measurements, not system-wide usage. See
 [statistics](docs/STATISTICS.md) for collection, permissions and player setup.
 
-Requires Python 3.11+. Node 22.12+ is needed only to build the frontend from source.
+## Quick start
 
-For a release installation, use the wheel and matching installers ZIP. Follow
+Install Git and Python 3.11 or newer. On Linux, install your distribution's `venv`
+package if needed (for example, `python3-venv` on Ubuntu). On Windows, make sure
+`python` is on PATH. Run the command for your OS from the folder where you want
+the `BeamMPY` checkout. It creates a virtual environment, installs BeamMPY with
+its bundled UI, and starts the panel. No Node.js required.
+
+**Linux (shell)**
+
+```sh
+git clone https://github.com/Bluemethyst/BeamMPY.git && cd BeamMPY && python3 -m venv .venv && .venv/bin/python -m pip install . && .venv/bin/beammpy serve --data-dir .
+```
+
+**Windows (Command Prompt)**
+
+```bat
+git clone https://github.com/Bluemethyst/BeamMPY.git && cd /d BeamMPY && python -m venv .venv && .venv\Scripts\python.exe -m pip install . && .venv\Scripts\beammpy.exe serve --data-dir .
+```
+
+Open [http://127.0.0.1:8080](http://127.0.0.1:8080) and create your administrator
+account. Press `Ctrl+C` to stop the panel. To start it again from inside `BeamMPY`,
+run `.venv/bin/beammpy serve --data-dir .` on Linux or
+`.venv\Scripts\beammpy.exe serve --data-dir .` in Command Prompt.
+
+For a packaged installation, use the wheel and matching installers ZIP. Follow
 [Windows/Linux installation, updates and account recovery](docs/INSTALLATION.md).
 The scripts create a private Python environment and keep runtime data separate;
 Node is not needed. Windows and Ubuntu 24.04 fixture, browser, packaging and
 installer checks passed on Python 3.11/3.13 in
 [v0.3.2 CI](https://github.com/Bluemethyst/BeamMPY/actions/runs/43400444506).
 Real Linux BeamMP execution and full authenticated player joins remain unverified.
-
-```powershell
-python -m venv .venv
-.venv\Scripts\python -m pip install -e ".[test]"
-npm --prefix frontend ci
-npm --prefix frontend run build
-.venv\Scripts\python -m beammpy serve --data-dir .
-```
-
-On Linux use `.venv/bin/python`. Open http://127.0.0.1:8080 and create your
-administrator account. A release wheel includes the UI: `pip install beammpy-*.whl`
-then `beammpy serve --data-dir /path/to/data` requires no Node or frontend build.
 
 ## Data and upgrades
 
@@ -165,6 +176,19 @@ are reconciled using recorded process identity; unrelated processes are not kill
   followed by `npm --prefix frontend run build`.
 
 ## Development and verification
+
+Building the frontend from source requires Node 22.12+. From the checkout, set
+up the development environment in PowerShell:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\python -m pip install -e ".[test]"
+npm --prefix frontend ci
+npm --prefix frontend run build
+```
+
+On Linux use `python3` to create the virtual environment and `.venv/bin/python`
+to install the project.
 
 The interface uses locally bundled [M3E](https://m3e.kyralabs.dev/) components,
 icons and fonts throughout. Fields, navigation, tabs, menus, dialogs, switches,

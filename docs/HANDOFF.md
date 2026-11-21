@@ -1,6 +1,19 @@
 # BeamMPY handoff
 
-Updated 2026-11-14. Read ROADMAP.md before expanding scope.
+Updated 2026-11-22. Read ROADMAP.md before expanding scope.
+
+## README quick start
+
+The README now gives one-line commands to clone the repository, install BeamMPY
+in a virtual environment and launch the bundled panel on Linux and in Windows
+Command Prompt. It also shows how to restart from the checkout. Development setup
+is under Development and verification.
+
+Verified the Windows command with a fresh GitHub clone and dependency install in
+a disposable directory on an unused loopback port. The panel served its bundled
+UI and assets. The Linux command passed a shell syntax check. Linux execution of
+the command remains unverified. `git diff --check` passed. Next, verify the Linux
+quick start on a Linux host alongside the outstanding BeamMP smoke checks.
 
 ## Owner-approved repository checkpoint
 
