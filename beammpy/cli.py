@@ -18,7 +18,7 @@ def main():
     sub = parser.add_subparsers(dest="command", required=True)
     serve = sub.add_parser("serve")
     serve.add_argument("--host", default="127.0.0.1")
-    serve.add_argument("--port", type=int, default=8080)
+    serve.add_argument("--port", type=int, default=8524)
     reset = sub.add_parser("reset-password")
     reset.add_argument("--username", required=True)
     setup = sub.add_parser("create-admin", help="Create the first administrator offline")

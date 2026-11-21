@@ -165,7 +165,7 @@ def install(args):
                     pass
         print(f"Installed BeamMPY {version}. Data directory: {data_dir}")
         print(f"Start from {root} using .\\beammpy.ps1 start (Windows) or ./beammpy.sh start (Linux).")
-        print("Open http://127.0.0.1:8080 to create the administrator, or run create-admin --username YOUR_NAME.")
+        print("Open the address shown at startup to create the administrator, or run create-admin --username YOUR_NAME.")
         if existing:
             print("The previous Python environment was retained. Back up data before first start; database migrations run on startup.")
 
@@ -191,7 +191,7 @@ def main():
             command.add_argument("--username", required=True)
         if name == "start":
             command.add_argument("--host", default="127.0.0.1")
-            command.add_argument("--port", type=int, default=8080)
+            command.add_argument("--port", type=int, help="Override the installed BeamMPY panel port.")
     worker = sub.add_parser("_activate", help=argparse.SUPPRESS)
     worker.add_argument("--install-dir", required=True)
     worker.add_argument("state")
@@ -206,7 +206,9 @@ def main():
             command = "serve" if args.command == "start" else args.command
             arguments = [environment_python(Path(state["active"])), "-I", "-m", "beammpy", command, "--data-dir", state["data_dir"]]
             if args.command == "start":
-                arguments.extend(["--host", args.host, "--port", str(args.port)])
+                arguments.extend(["--host", args.host])
+                if args.port is not None:
+                    arguments.extend(["--port", str(args.port)])
             elif args.command != "list-users":
                 arguments.extend(["--username", args.username])
             run(arguments)

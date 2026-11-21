@@ -6,8 +6,8 @@ export default defineConfig({
   build: { outDir: '../beammpy/web', emptyOutDir: true },
   server: {
     proxy: {
-      '/api': 'http://127.0.0.1:8080',
-      '/socket.io': 'http://127.0.0.1:8080',
+      '/api': 'http://127.0.0.1:8524',
+      '/socket.io': 'http://127.0.0.1:8524',
     },
   },
 })

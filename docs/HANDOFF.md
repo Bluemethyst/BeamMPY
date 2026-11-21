@@ -2,6 +2,24 @@
 
 Updated 2026-11-22. Read ROADMAP.md before expanding scope.
 
+## Default panel port
+
+Changed the default panel address to `127.0.0.1:8524` and aligned the Vite
+development proxy, README quick start and installation guide. The installed
+launcher uses the wheel's default and forwards an explicit `--port`. The README
+explains how to update a reverse proxy upstream or keep port 8080. IANA lists 8524
+in its unassigned range, and TCP binds on both loopback addresses succeeded on
+the Windows workstation.
+
+Disposable Windows smoke checks served the UI and setup API on 8524 and on an
+explicit alternate port. Vite forwarded API and Socket.IO polling on 8524, and a
+launcher check verified default and override argument forwarding. Backend tests
+passed (128 passed, two opt-in cases skipped), as did TypeScript, the frontend
+build, the Python distribution build and a clean wheel install without Node.
+No live installation was restarted.
+Next, verify the Linux quick start and the outstanding BeamMP smoke checks on a
+Linux host.
+
 ## README quick start
 
 The README now gives one-line commands to clone the repository, install BeamMPY

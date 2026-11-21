@@ -33,7 +33,7 @@ git clone https://github.com/Bluemethyst/BeamMPY.git && cd BeamMPY && python3 -m
 git clone https://github.com/Bluemethyst/BeamMPY.git && cd /d BeamMPY && python -m venv .venv && .venv\Scripts\python.exe -m pip install . && .venv\Scripts\beammpy.exe serve --data-dir .
 ```
 
-Open [http://127.0.0.1:8080](http://127.0.0.1:8080) and create your administrator
+Open [http://127.0.0.1:8524](http://127.0.0.1:8524) and create your administrator
 account. Press `Ctrl+C` to stop the panel. To start it again from inside `BeamMPY`,
 run `.venv/bin/beammpy serve --data-dir .` on Linux or
 `.venv\Scripts\beammpy.exe serve --data-dir .` in Command Prompt.
@@ -132,11 +132,15 @@ accordingly (large imports may need several minutes).
 
 ## Deployment
 
-`beammpy serve --host 0.0.0.0 --port 8080 --data-dir /path/to/data` enables LAN
+`beammpy serve --host 0.0.0.0 --port 8524 --data-dir /path/to/data` enables LAN
 access. Run as a dedicated unprivileged user with read/write access to instance
 directories and execute permission for the BeamMP binaries. A single Waitress
 process serves Flask and Socket.IO polling; do not start multiple WSGI workers or
 enable a development reloader against the same data directory.
+
+The panel defaults to `127.0.0.1:8524`. Add `--port 8525` to the launch command
+if that port is in use. When switching from `8080`, update any reverse proxy
+upstream to match or keep the old port with `--port 8080`.
 
 For internet access, place an HTTPS reverse proxy in front of the localhost
 listener. Forward `/`, `/api/`, and `/socket.io/` to the same backend, preserve
@@ -204,7 +208,7 @@ Run `python -m pytest`, `npm --prefix frontend run check`, and
 with `npm --prefix frontend exec -- playwright install chromium`, then run
 `npm --prefix frontend run test:e2e`. Tests use temporary data and fixture processes.
 
-For frontend hot reload run `beammpy serve --port 8080` and, in another terminal,
+For frontend hot reload run `beammpy serve` and, in another terminal,
 `npm --prefix frontend run dev`. Vite proxies API and Socket.IO calls to Flask.
 Build wheels with `python -m build` after building the UI. Do not include runtime
 data in wheels. See `docs/HANDOFF.md` for outstanding real BeamMP/platform checks.

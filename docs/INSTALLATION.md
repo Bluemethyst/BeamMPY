@@ -46,14 +46,16 @@ real-binary smoke checks. Full authenticated player joins remain unverified.
 
 ## First account and routine access
 
-Open http://127.0.0.1:8080 on the host and create the administrator. This setup
-closes permanently once any account exists. Alternatively, before starting the
+Open the address shown at startup (by default http://127.0.0.1:8524) on the host
+and create the administrator. This setup closes permanently once any account
+exists. Alternatively, before starting the
 panel, use the installed launcher with create-admin --username YOUR_NAME. Its
 password prompts are hidden; passwords are never command-line arguments.
 
 The installed launcher is beammpy.ps1 on Windows and beammpy.sh on Linux. It
 remembers the data directory; you do not need to repeat it. start accepts --host
-and --port, defaults to loopback:8080, and stays in the foreground. Ctrl+C stops
+and --port, uses the installed panel's default port (8524 in the current source),
+and stays in the foreground. The default host is 127.0.0.1. Ctrl+C stops
 the panel and its owned servers. The scripts do not add services, autostart,
 firewall rules or public listeners. Follow README.md for an HTTPS proxy/LAN setup
 after creating the administrator. Never run two panel processes on one data dir.
