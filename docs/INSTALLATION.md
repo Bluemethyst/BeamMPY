@@ -252,14 +252,14 @@ must be separate directories. Use the wheel plus matching installers ZIP (or
 the `scripts/` directory from source); keep the scripts together:
 
 ```powershell
-.\install.ps1 --wheel 'C:\Downloads\beammpy-0.4.1-py3-none-any.whl' --install-dir 'C:\BeamMPY\app' --data-dir 'C:\BeamMPY\data'
+.\install.ps1 --wheel 'C:\Downloads\beammpy-0.5.0-py3-none-any.whl' --install-dir 'C:\BeamMPY\app' --data-dir 'C:\BeamMPY\data'
 & 'C:\BeamMPY\app\beammpy.ps1' start
 # Stop and back up before updating:
 .\update.ps1 --wheel 'C:\Downloads\beammpy-NEW_VERSION-py3-none-any.whl' --install-dir 'C:\BeamMPY\app'
 ```
 
 ```sh
-sh ./install.sh --wheel /path/beammpy-0.4.1-py3-none-any.whl --install-dir "$HOME/BeamMPY/app" --data-dir "$HOME/BeamMPY/data"
+sh ./install.sh --wheel /path/beammpy-0.5.0-py3-none-any.whl --install-dir "$HOME/BeamMPY/app" --data-dir "$HOME/BeamMPY/data"
 sh "$HOME/BeamMPY/app/beammpy.sh" start
 # Stop and back up before updating:
 sh ./update.sh --wheel /path/beammpy-NEW_VERSION-py3-none-any.whl --install-dir "$HOME/BeamMPY/app"

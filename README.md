@@ -3,7 +3,7 @@
 Manage your local BeamMP servers from a browser. Create or import servers, use
 live consoles, change maps and mods, view statistics, and give members access.
 
-Current version: **0.4.1**.
+Current version: **0.5.0**.
 
 ## Install
 
