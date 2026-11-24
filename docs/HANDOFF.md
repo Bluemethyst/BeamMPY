@@ -2,6 +2,43 @@
 
 Updated 2026-11-24. Read ROADMAP.md before expanding scope.
 
+## v0.5.0 manual CI failure: fixed version-dependent test (2026-11-24)
+
+Reviewed [manual Checks run 45356638115](https://github.com/Bluemethyst/BeamMPY/actions/runs/45356638115)
+at the owner's published commit `6b773a02b35af785cb2679164ab33500c787dd82`
+(Version bumped to 0.5.0). All four jobs passed the standalone version-consistency
+check. Both Ubuntu logs show the same pytest failure in
+`test_approved_manifest_sync_requires_ui_rebuild_and_updates_both_lock_entries`:
+the test wrote the literal 0.5.0 into a disposable manifest and expected drift,
+but that was now the real, already synchronized version. `verify()` correctly
+returned an empty error list, so the assertion failed. Each Ubuntu log records
+209 passed, one failed and six skipped. Python 3.13 concluded failure; the
+Python 3.11 job concluded cancelled after reporting its same pytest failure.
+Both Windows jobs were cancelled during pytest. Real BeamMP, browser, package
+and installer/service steps were skipped; this run did not verify those gates.
+
+Reproduced the exact assertion locally, then corrected the test to derive a
+different version from its disposable manifest. Drift checks also derive their
+replacement version rather than assuming 9.9.9 will always differ. Added
+baselines for 0.4.1, 0.5.0, 9.9.9 and a prerelease/build version while retaining
+the assertions that synchronization updates both lock entries/README and still
+requires a UI rebuild. Only tests and this handoff changed. The owner's current
+0.5.0 version and synchronized software/UI metadata were retained.
+
+Verified with disposable files/data: metadata suite **13 passed**; full Windows
+backend **215 passed, four skipped** (two opt-in BeamMP and two Linux systemd
+parser cases); `tools/version.py` confirms 0.5.0 consistency; `git diff --check`
+passes. Frontend, browser, distribution and installer suites were not rerun for
+this test-only correction. No live data or panel/server processes were used.
+No additional version bump is needed for this test-only change. No commit, push,
+workflow dispatch or publication was performed.
+
+Next: commit/push this test correction, then start a **new** manual Checks run
+on the updated main with real_beammp enabled. Rerunning the old run would reuse
+its old commit and repeat the failure. Require the new run's full Windows/Ubuntu
+matrix, real BeamMP and installer/service steps to pass before claiming those
+checks verified. Authenticated player joins remain separate. No milestone changed.
+
 ## Panel update checker, dialog and canonical version metadata (2026-11-24)
 
 Implemented the requested update indicator beside the navigation footer version,

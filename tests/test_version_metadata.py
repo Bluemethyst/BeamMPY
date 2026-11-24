@@ -5,6 +5,7 @@ import shutil
 
 import pytest
 
+from beammpy.versioning import semver
 from tools.version import current_version, verify
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +23,11 @@ def metadata(tmp_path):
     return tmp_path
 
 
+def next_version(metadata):
+    (major, minor, patch), _ = semver(current_version(metadata))
+    return f'{major}.{minor}.{patch + 1}'
+
+
 def test_repository_versions_agree():
     assert verify() == []
 
@@ -33,18 +39,26 @@ def test_drift_is_detected(metadata, name):
     if name.endswith('App.vue'):
         text = text.replace('../../beammpy/version.json', '../package.json')
     elif name.endswith('checks.yml'):
-        text += '\n# accidental versioned command: beammpy-9.9.9-py3-none-any.whl\n'
+        text += f'\n# accidental versioned command: beammpy-{next_version(metadata)}-py3-none-any.whl\n'
     else:
-        text = text.replace(current_version(), '9.9.9')
+        text = text.replace(current_version(metadata), next_version(metadata))
     path.write_text(text, encoding='utf-8')
     assert verify(metadata)
 
 
-def test_approved_manifest_sync_requires_ui_rebuild_and_updates_both_lock_entries(metadata):
-    (metadata / 'beammpy/version.json').write_text('{"version":"0.5.0"}')
+@pytest.mark.parametrize('baseline', ['0.4.1', '0.5.0', '9.9.9', '1.0.0-rc.1+build.5'])
+def test_approved_manifest_sync_requires_ui_rebuild_and_updates_both_lock_entries(metadata, baseline):
+    manifest = metadata / 'beammpy/version.json'
+    manifest.write_text(json.dumps({'version': baseline}), encoding='utf-8')
+    assert verify(metadata, sync=True, source_only=True) == []
+    # Establish a matching disposable UI stamp before simulating another bump.
+    (metadata / 'beammpy/web/version.json').write_text(json.dumps({'version': baseline}), encoding='utf-8')
+    assert verify(metadata) == []
+    target = next_version(metadata)
+    manifest.write_text(json.dumps({'version': target}), encoding='utf-8')
     assert verify(metadata)
     assert verify(metadata, sync=True, source_only=True) == []
     assert verify(metadata) == ['Bundled UI version is stale or missing: rebuild frontend']
     lock = json.loads((metadata / 'frontend/package-lock.json').read_text())
-    assert lock['version'] == lock['packages']['']['version'] == '0.5.0'
-    assert '**0.5.0**' in (metadata / 'README.md').read_text()
+    assert lock['version'] == lock['packages']['']['version'] == target
+    assert f'**{target}**' in (metadata / 'README.md').read_text()
