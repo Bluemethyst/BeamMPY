@@ -2,6 +2,36 @@
 
 Updated 2026-11-24. Read ROADMAP.md before expanding scope.
 
+## README uninstall/update commands and next-session scope (2026-11-24)
+
+Added explicit Ubuntu uninstall and Windows removal instructions to README.
+Ubuntu uses sudo sh /opt/beammpy/uninstall.sh (custom roots substituted), keeping
+data by default; optional --purge-data still requires full-path confirmation.
+Windows instructions stop the panel, retain data/imported folders, and remove
+the chosen root. README also lists the existing one-line installer rerun commands
+as manual updates, with stopped-data backups, the same root, and restart guidance.
+
+README now shows the existing 0.4.1 version, matching Python and frontend package
+metadata and the current sidebar version import. No version bump or new runtime
+manifest was made. AGENTS.md now requires explicit user selection of no bump,
+patch, minor or major after behavior changes, plus synchronized version metadata;
+documentation-only sessions keep the existing version by default.
+
+Saved the owner's next-session prompt in NEXT_SESSION_PROMPT.md and recorded the
+scope in ROADMAP.md: update-available icon by the navigation footer's version,
+M3E dialog/copyable host-appropriate update command, bounded cached checking,
+one canonical readable/published version source and SemVer comparison/approval.
+The update-checking feature and canonical manifest are for that next session,
+not implemented here. Existing pyproject/frontend metadata remains internal
+version storage until that work synchronizes it with the canonical manifest.
+
+Verification: documentation links and version consistency checked, installed
+uninstall/update instructions compared with the existing scripts/guide, and
+git diff --check passed. No runtime code changed and no application suites were
+rerun. No live data, installation or service was changed. No commit/push occurred.
+Next: use the saved prompt for update checking, while retaining the outstanding
+Ubuntu service/boot/uninstall and real BeamMP validation gates below.
+
 ## Ubuntu service rejection and temporary-file cleanup (2026-11-24)
 
 The owner confirms Windows installation and manual launch now work as intended.

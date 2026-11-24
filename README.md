@@ -3,6 +3,8 @@
 Manage your local BeamMP servers from a browser. Create or import servers, use
 live consoles, change maps and mods, view statistics, and give members access.
 
+Current version: **0.4.1**.
+
 ## Install
 
 Requires **Python 3.11+**. No Node.js or Git needed.
@@ -44,8 +46,40 @@ Choose **lan** during setup to connect from another device; open the URL it prin
 | Stop | **Ctrl+C** in the panel window | `sudo systemctl stop beammpy` |
 | Data | `data\` inside your chosen folder | `/var/lib/beammpy` by default |
 
-Keep a backup of your data before updating. Ubuntu uninstall keeps data by default;
-on Windows, save `data\` before deleting the installation folder.
+## Update
+
+Stop BeamMPY and back up your data and any imported server folders. Run the
+installer again and choose the **same installation folder**:
+
+**Windows (PowerShell)**
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/Bluemethyst/BeamMPY/main/scripts/install.ps1 | iex
+```
+
+**Ubuntu**
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/Bluemethyst/BeamMPY/main/scripts/install.sh | sh
+```
+
+Existing accounts and server files are retained. Ubuntu restarts its service;
+on Windows, open **Start BeamMPY.bat** again.
+
+## Uninstall
+
+**Ubuntu** (replace `/opt/beammpy` if you chose another installation folder):
+
+```sh
+sudo sh /opt/beammpy/uninstall.sh
+```
+
+This stops and removes the service and program, keeping your accounts and data.
+To delete installer-managed data too, use `--purge-data` and confirm its full path.
+
+**Windows:** stop the panel with **Ctrl+C**, copy `data\` and any imported server
+folders you want to keep, then delete your installation folder (default:
+`%LOCALAPPDATA%\BeamMPY`). There is no Windows service to remove.
 
 ## Guides
 

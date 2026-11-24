@@ -40,6 +40,16 @@ but exposed invalid service-path quoting and root-owned temporary build files;
 corrections and recovery instructions are implemented, awaiting Linux validation.
 No release-readiness milestone changes on the basis of this session.
 
+## Next requested scope: update availability (2026-11-24)
+
+The owner requested an update-available icon beside the navigation footer's
+version and an M3E dialog with a copyable manual update command. Introduce
+consistent machine-readable version metadata and explicit user approval for
+SemVer bumps. The next-session prompt is saved in
+[NEXT_SESSION_PROMPT.md](NEXT_SESSION_PROMPT.md). This feature is not implemented;
+the README documents the existing manual update and uninstall flows now.
+Existing release-validation gates remain unchanged.
+
 ## CI review and recommended next scope (2026-11-14)
 
 Reviewed [Checks run 43400444506](https://github.com/Bluemethyst/BeamMPY/actions/runs/43400444506)

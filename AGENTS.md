@@ -31,3 +31,21 @@ milestone complete only when its acceptance checks pass.
 Release packages must include the compiled UI and run without Node. Keep runtime
 data out of distributions and source control. Deferred features require a separate
 specification; do not expand the first release into a hosting platform.
+
+## Versioning
+
+- Use Semantic Versioning: `MAJOR.MINOR.PATCH`. A patch fixes compatible bugs,
+  a minor adds compatible features, and a major introduces incompatible changes.
+- After implementing a change to software behavior, ask whether the user wants
+  a version bump and which increment: none, patch, minor, or major. Explain the
+  resulting version numbers and recommend an increment when useful. Finish the
+  authorized implementation and checks before asking; never bump automatically
+  or interpret silence as approval.
+- Documentation-only sessions keep the current version unless the user requests
+  a bump. Read the version from `pyproject.toml`; do not assume the number in a
+  historical handoff is current. The README, frontend/package.json and both root
+  entries in frontend/package-lock.json must agree with the package version.
+- When a canonical machine-readable version manifest is introduced, use it as
+  the source of truth and keep package metadata, README, frontend version/footer,
+  versioned CI commands and distribution tooling synchronized. Rebuild the bundled
+  UI when its displayed version changes. Validate consistency before release.
