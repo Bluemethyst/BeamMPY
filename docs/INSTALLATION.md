@@ -1,141 +1,255 @@
-# Installation, updates and account recovery
+# Installation, startup and uninstall
 
-BeamMPY needs Python 3.11 or newer. Release wheels include the interface and do
-not need Node. Install Python yourself before running these scripts; on Linux,
-your distribution may package venv/pip support separately (for example
-python3-venv on Ubuntu). Run as your intended unprivileged panel account.
+End users need Python 3.11+, outbound HTTPS to GitHub and the configured Python
+package index, and disk space for the program and servers. Node.js and Git are
+not needed: the public source archive includes the compiled interface. Python
+build/dependency installation happens in private environments, without changing
+the system Python packages. The installers never install/update BeamMP binaries.
 
-Use the BeamMPY wheel and matching installers ZIP from the release artifacts.
-Extract the ZIP into a working directory; keep manage.py, beammpy.ps1 and
-beammpy.sh together. Source archives also contain the same files under scripts/.
-The ZIP contains scripts and these instructions, not Python or the wheel.
-Paths with spaces are supported. The scripts install Python dependencies from
-the configured pip index; outbound network access is needed unless you supply
-an offline wheel directory with --wheelhouse.
+## Ubuntu Server
 
-## Windows
-
-From PowerShell in the extracted installers directory:
-
-```powershell
-.\install.ps1 --wheel "C:\Downloads\beammpy-0.4.1-py3-none-any.whl" --install-dir "C:\BeamMPY\app" --data-dir "C:\BeamMPY\data"
-& "C:\BeamMPY\app\beammpy.ps1" start
-```
-
-Python's Windows launcher (py -3) is used when available, otherwise python must
-be on PATH. Set BEAMMPY_PYTHON to a specific Python executable if needed; the same
-override is supported by the Linux scripts and the verification matrix.
-If Windows marks downloaded scripts as blocked, inspect the trusted
-release files and use Unblock-File on those scripts as appropriate to your local
-PowerShell policy. The installer does not change execution policy.
-
-## Linux
+Use Ubuntu with systemd (24.04 LTS supplies Python 3.12), an interactive SSH/local
+terminal, and sudo/root access. Install prerequisites if missing:
 
 ```sh
-sh ./install.sh --wheel "$HOME/Downloads/beammpy-0.4.1-py3-none-any.whl" --install-dir "$HOME/BeamMPY/app" --data-dir "$HOME/BeamMPY/data"
+sudo apt-get update
+sudo apt-get install python3 python3-venv curl ca-certificates
+```
+
+Run this one-liner as your normal login account; sudo is requested as needed:
+
+```sh
+(f=$(mktemp) && trap 'rm -f "$f"' 0 && curl -fsSL https://raw.githubusercontent.com/Bluemethyst/BeamMPY/main/scripts/install.sh -o "$f" && sh "$f")
+```
+
+The script is downloaded to a temporary file before execution and explicitly
+reads prompts from `/dev/tty`, so downloads do not consume the prompt input.
+It is POSIX `sh`; Bash is not required. You can also download and inspect
+`scripts/install.sh` before running it. Do not run unattended without a terminal.
+
+Prompts cover the installation root (`/opt/beammpy`), data directory
+(`/var/lib/beammpy`), local/LAN access, TCP port (8524) and service account
+(`beammpy`). Program files and versioned private Python environments live under
+`/opt/beammpy/app`; installer records and uninstall tools live in `/opt/beammpy`.
+Keep data outside the installation root. Custom absolute paths, including spaces,
+are supported; symlink paths and overlapping program/data paths are rejected.
+An existing account can be reused if it has access to the data. New service
+accounts have no login shell. The service runs unprivileged; program files are
+root-owned and new data directories are private to the service account.
+
+Installation starts `beammpy.service`, enables it at boot, and checks both
+systemd state and the panel's HTTP API. It does not open firewall ports. The panel
+starts with all managed BeamMP servers stopped.
+
+### Headless and LAN access
+
+The default **local** choice binds `127.0.0.1:8524`; only the server itself can
+open that address. From another computer, use an SSH tunnel:
+
+```sh
+ssh -L 8524:127.0.0.1:8524 YOUR_USER@SERVER_IP
+```
+
+Then open `http://127.0.0.1:8524` on that computer. Choose **lan** during
+installation to bind `0.0.0.0` instead. The installer prints local and detected
+IPv4 interface URLs, for example `http://192.168.1.20:8524`. Use the address of
+an interface reachable from your device; `0.0.0.0` is never a browser destination.
+If needed, allow the panel TCP port from your trusted LAN in your firewall.
+Create the first administrator promptly on a trusted network. For internet
+access use the HTTPS reverse proxy settings in README.md.
+
+### Service operations
+
+```sh
+sudo systemctl status beammpy --no-pager
+sudo journalctl -u beammpy -f
+sudo systemctl restart beammpy
+sudo systemctl stop beammpy
+sudo systemctl start beammpy
+sudo systemctl is-enabled beammpy
+```
+
+Stop waits for the panel to stop its owned servers. Do not start a second panel
+on the same data directory. Change bind/port by rerunning the installer with the
+same root; it defaults to the saved values and retains the saved data directory.
+
+### Uninstall
+
+For the default root (substitute your chosen path):
+
+```sh
+sudo sh /opt/beammpy/uninstall.sh
+```
+
+This stops and disables the service, removes its unit and installed program
+files/environments, and reloads systemd. It **keeps** the Linux service account,
+panel accounts, configuration, local server data and imported server directories.
+Reinstalling with the same data directory reuses that data; preserve its ownership.
+
+To also remove installer-created data, explicitly request the separate option:
+
+```sh
+sudo sh /opt/beammpy/uninstall.sh --purge-data
+```
+
+You must type the exact full data path to confirm permanent deletion. Purge
+requires the installer's matching data marker; pre-existing/adopted data cannot
+be purged by this command. It removes everything under that data path, including
+accounts and local instances. Imported directories outside it and the Linux
+account remain. If already uninstalled, retained data must be removed manually
+or after reinstalling; the uninstall program itself was removed.
+
+## Windows 11
+
+Install Python 3.11+ with the Python launcher (`py -3`) or `python` on PATH.
+Run in Windows PowerShell as the user who will run the panel; administrator
+rights are unnecessary for a user-writable installation root.
+
+```powershell
+& { $f = Join-Path $env:TEMP ('beammpy-' + [guid]::NewGuid() + '.ps1'); try { Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/Bluemethyst/BeamMPY/main/scripts/install.ps1 -OutFile $f; powershell.exe -NoProfile -ExecutionPolicy Bypass -File $f } finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue } }
+```
+
+The execution-policy override applies only to the child installer process; it
+does not change machine/user policy. Alternatively download and inspect
+`scripts/install.ps1` and run it according to your local policy.
+`BEAMMPY_PYTHON` can select a specific Python executable.
+
+Choose an installation root, such as `C:\Users\YOU\BeamMPY Panel` (default
+`%LOCALAPPDATA%\BeamMPY`). The installer keeps these paths under it:
+
+| Path under root | Contents |
+| --- | --- |
+| `Start BeamMPY.bat` | Double-clickable foreground launcher |
+| `app\environments\` | Private Python environments and installed program/UI |
+| `app\installation.json` | Active/previous environment and launch settings |
+| `data\` | Accounts, panel configuration and managed server directories |
+| `setup.json`, `setup.py` | Installer records/maintenance tools |
+
+Choose local access (default) or LAN, and port 8524 unless another program uses
+it. No Windows service, scheduled task, shortcut in Startup, or automatic launch
+is installed. After installation, double-click **Start BeamMPY.bat**. It uses
+its own directory and private environment, so it also works from another working
+directory, for example in PowerShell:
+
+```powershell
+& 'C:\Users\YOU\BeamMPY Panel\Start BeamMPY.bat'
+```
+
+Open the printed URL, normally `http://127.0.0.1:8524`. For LAN mode, open
+`http://SERVER_LAN_IP:8524` from another device and permit that TCP port from the
+trusted LAN if Windows Firewall requires it. Press **Ctrl+C** in the panel's
+console to stop the panel and its owned servers; answer the batch-termination
+prompt if Windows displays it. Wait for shutdown before closing the window.
+
+### Remove Windows installation
+
+Stop the panel first. Keep or copy `data\` and any externally imported server
+folders you want to retain. Remove `app\`, `Start BeamMPY.bat`, `setup.json`,
+`setup.py` and installer `__pycache__` to leave `data\` in place;
+or move `data\` somewhere safe and delete the entire installation root using
+File Explorer. Deleting the root without saving data permanently removes those
+accounts and local instances. There is no service/startup entry to remove.
+To reuse retained data after removing program files, install into a new empty
+root, then (with the panel stopped) replace its empty `data\` with the retained
+folder. Keep your existing Python installation while using its private environments.
+
+## First administrator and recovery
+
+On first access, create the sole administrator with a password of at least eight
+characters. Setup is available only while the database has no accounts. Existing
+users, password hashes, grants, server files, TOML and `.env` are preserved on
+reruns. The data directory holds `users.db`, `panel.secret`, `.panel.lock` and
+`instances/`; imported folders remain at their original locations. Never delete
+the lock while the panel runs.
+
+For first setup without a browser or forgotten usernames/passwords, stop the
+panel (Ubuntu: `sudo systemctl stop beammpy`) and run the installed launcher:
+
+```sh
+sudo -u beammpy sh /opt/beammpy/app/beammpy.sh list-users
+sudo -u beammpy sh /opt/beammpy/app/beammpy.sh reset-password --username YOUR_NAME
+# Only before any account exists:
+sudo -u beammpy sh /opt/beammpy/app/beammpy.sh create-admin --username YOUR_NAME
+sudo systemctl start beammpy
+```
+
+```powershell
+& 'C:\Users\YOU\BeamMPY Panel\app\beammpy.ps1' list-users
+& 'C:\Users\YOU\BeamMPY Panel\app\beammpy.ps1' reset-password --username YOUR_NAME
+# Only before any account exists:
+& 'C:\Users\YOU\BeamMPY Panel\app\beammpy.ps1' create-admin --username YOUR_NAME
+```
+
+Password prompts are hidden and revoke existing sessions on reset. Local
+maintenance refuses an active panel. There is no email reset or public
+registration. My account changes your own password; Users manages member
+accounts and per-server permissions. See [ACCOUNTS_DEPLOYMENT.md](ACCOUNTS_DEPLOYMENT.md)
+and [STATISTICS.md](STATISTICS.md) for account and statistics behavior.
+
+## Reruns and updates
+
+Stop/backup first: copy the complete stopped data directory and external imported
+server directories to your backup location. Rerun the one-liner and select the
+**same installation root**. Managed installs retain their recorded data path,
+reuse accounts/data, and activate a new private environment only after its
+disposable validation passes. Old environments are retained. Ubuntu stops an
+existing service during activation and starts it afterward; Windows refuses
+updates while its panel runs. Initial source-build failures leave a running
+Ubuntu service alone. An interrupted install can be rerun with the same root.
+
+Do not downgrade after database migration without restoring the matching old
+data backup too. The scripts do not back up data or update BeamMP binaries.
+For an interrupted installer, verify no installer is running before removing
+the root/app `.install.lock`. Unrecognized nonempty roots are refused.
+
+### Explicit wheels / existing manual installations
+
+The original wheel-based scripts remain supported, including offline dependency
+wheels. They create no service and start in the foreground; program and data
+must be separate directories. Use the wheel plus matching installers ZIP (or
+the `scripts/` directory from source); keep the scripts together:
+
+```powershell
+.\install.ps1 --wheel 'C:\Downloads\beammpy-0.4.1-py3-none-any.whl' --install-dir 'C:\BeamMPY\app' --data-dir 'C:\BeamMPY\data'
+& 'C:\BeamMPY\app\beammpy.ps1' start
+# Stop and back up before updating:
+.\update.ps1 --wheel 'C:\Downloads\beammpy-NEW_VERSION-py3-none-any.whl' --install-dir 'C:\BeamMPY\app'
+```
+
+```sh
+sh ./install.sh --wheel /path/beammpy-0.4.1-py3-none-any.whl --install-dir "$HOME/BeamMPY/app" --data-dir "$HOME/BeamMPY/data"
 sh "$HOME/BeamMPY/app/beammpy.sh" start
+# Stop and back up before updating:
+sh ./update.sh --wheel /path/beammpy-NEW_VERSION-py3-none-any.whl --install-dir "$HOME/BeamMPY/app"
 ```
 
-The shell scripts use python3. If this interpreter cannot create a virtual
-environment, install the distribution's venv support first. Actual shell-script
-installation/update, active-panel rejection and installed-launcher checks passed
-on Ubuntu 24.04 with Python 3.11 and 3.13 in
-[v0.3.2 CI](https://github.com/Bluemethyst/BeamMPY/actions/runs/43400444506).
-Real Linux BeamMP execution remains a release gate; that run skipped the optional
-real-binary smoke checks. Full authenticated player joins remain unverified.
+Add `--wheelhouse /path/to/dependency-wheels` to install/update offline. To adopt
+an existing manual installation, use these explicit commands with a **new empty
+program directory** and the existing stopped data path. The interactive root
+installer does not silently adopt an unrelated nonempty directory. No existing
+manual installation or imported server is moved or removed.
 
-## First account and routine access
+## Public downloads and publication
 
-Open the address shown at startup (by default http://127.0.0.1:8524) on the host
-and create the administrator. This setup closes permanently once any account
-exists. Alternatively, before starting the
-panel, use the installed launcher with create-admin --username YOUR_NAME. Its
-password prompts are hidden; passwords are never command-line arguments.
+Checked anonymously on 2026-11-24: the [GitHub Releases API](https://api.github.com/repos/Bluemethyst/BeamMPY/releases)
+returns `[]`; no public wheel/installers release exists. The [public source ZIP](https://codeload.github.com/Bluemethyst/BeamMPY/zip/refs/heads/main)
+and [raw shell installer](https://raw.githubusercontent.com/Bluemethyst/BeamMPY/main/scripts/install.sh)
+return HTTP 200. The source ZIP includes `beammpy/web/index.html` and bundled
+assets, so the interactive installers build/install the Python package from
+that source without Node. They do not use a nonexistent `releases/latest` URL
+or authenticated/expiring Actions artifact links. Downloads follow current
+`main`; these commands are not version-pinned.
 
-The installed launcher is beammpy.ps1 on Windows and beammpy.sh on Linux. It
-remembers the data directory; you do not need to repeat it. start accepts --host
-and --port, uses the installed panel's default port (8524 in the current source),
-and stays in the foreground. The default host is 127.0.0.1. Ctrl+C stops
-the panel and its owned servers. The scripts do not add services, autostart,
-firewall rules or public listeners. Follow README.md for an HTTPS proxy/LAN setup
-after creating the administrator. Never run two panel processes on one data dir.
+**Publication pending for this session:** push the updated `scripts/install.sh`,
+`scripts/install.ps1`, `scripts/manage.py`, new `scripts/setup.py`, README and
+this guide to `main`, keeping the compiled `beammpy/web/` assets tracked.
+Until that happens, the remote scripts still provide the older wheel-only
+installer and the new one-liners cannot perform interactive setup. No GitHub
+Release assets need publishing for the source-based route. This session does
+not commit, push or publish a release.
 
-My account changes your password and signs out all sessions. Users lets the
-administrator create members, set passwords, disable/delete members and
-assign access to selected servers. New/reset members change their password at
-first sign-in when Temporary password is checked. Uncheck it to set a password
-without forcing a change. New passwords need at least eight characters. Deleting
-a member signs out their sessions and retains servers/files; the administrator
-cannot be deleted. Access changes revoke sessions. See ACCOUNTS_DEPLOYMENT.md for
-the permission model; upload covers vehicle and map ZIPs in the same mod manager.
-Member mod writes require private instance-local resource folders. Shared or
-external resources remain available to the administrator through the existing
-mod manager.
-
-Version 0.4 adds Statistics on each server dashboard. CPU, memory and uptime are
-for that BeamMP process only. Grant members View statistics separately in Users.
-As administrator, stop a server and enable Collect player statistics on its
-Statistics tab to install the optional bundled server plugin. Start the server
-to collect online counts and successful joins; no client mod is needed. History
-is retained for 30 days. See STATISTICS.md for resource restrictions and units.
-
-## Forgotten passwords or usernames
-
-Stop the panel first. From its installed application directory:
-
-```powershell
-.\beammpy.ps1 list-users
-.\beammpy.ps1 reset-password --username YOUR_NAME
-```
-
-```sh
-sh ./beammpy.sh list-users
-sh ./beammpy.sh reset-password --username YOUR_NAME
-```
-
-The reset prompts for a new password twice and revokes sessions. Accounts,
-permissions and servers remain intact. Resetting a disabled member locally does
-not re-enable it. Members may ask the administrator for a temporary reset from
-Users; the administrator uses local recovery when locked out. There is no email
-reset endpoint. The login recovery dialog shows these same instructions.
-
-Manual pip installations use beammpy list-users, beammpy create-admin or
-beammpy reset-password, with --data-dir YOUR_DATA_DIRECTORY. The stopped-panel
-lock applies to all local account maintenance.
-
-## Updates
-
-Download the new wheel and matching installers bundle. Stop the panel cleanly,
-then copy the complete data directory and imported server directories to your
-own backup location before updating. This remains a manual backup operation.
-
-```powershell
-.\update.ps1 --install-dir "C:\BeamMPY\app" --wheel "C:\Downloads\beammpy-NEW_VERSION-py3-none-any.whl"
-& "C:\BeamMPY\app\beammpy.ps1" start
-```
-
-```sh
-sh ./update.sh --install-dir "$HOME/BeamMPY/app" --wheel "$HOME/Downloads/beammpy-NEW_VERSION-py3-none-any.whl"
-sh "$HOME/BeamMPY/app/beammpy.sh" start
-```
-
-Use the same install directory each time. Updates reuse its recorded data
-directory and refuse an active panel. A fresh virtual environment is installed
-and validated against disposable data; activation rechecks the panel lock. Failed
-installation leaves the active environment selected. Existing environments are
-retained; installation.json records active/previous paths and the data directory.
-Only start the new panel when ready to apply database migrations. Do not switch
-to an older environment after migration without also restoring its matching data
-backup. The scripts never replace .env, account records or BeamMP installations,
-and do not update BeamMP binaries.
-
-To adopt a manual installation, stop it and use install with a separate empty
-application directory and --data-dir pointing to its existing data. Imported
-server directories retain their registered locations. Do not choose a data
-directory inside the application directory or vice versa. Defaults are sibling
-app and data directories under your home's BeamMPY folder.
-
-For an interrupted installer, check that no installation process remains before
-removing its .install.lock. Preserve installation.json and environments/; cleanup
-of old environments is intentionally manual. A failed pip command may require
-checking network access, Python compatibility, wheel completeness or disk space.
+If distributing wheels instead, publish `beammpy-VERSION-py3-none-any.whl` and
+the matching `beammpy-VERSION-installers.zip` from `tools/package_installers.py`
+to a public GitHub Release first. Actions artifacts are verification outputs,
+not the public download source. See HANDOFF.md for checks actually run and the
+remaining Ubuntu service verification.

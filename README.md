@@ -15,41 +15,52 @@ the selected server's measurements, not system-wide usage. See
 
 ## Quick start
 
-Install Git and Python 3.11 or newer. On Linux, install your distribution's `venv`
-package if needed (for example, `python3-venv` on Ubuntu). On Windows, make sure
-`python` is on PATH. Run the command for your OS from the folder where you want
-the `BeamMPY` checkout. It creates a virtual environment, installs BeamMPY with
-its bundled UI, and starts the panel. No Node.js required.
+Install Python 3.11 or newer first. Ubuntu Server also needs `python3-venv`,
+`curl`, `ca-certificates`, systemd and sudo/root access (Ubuntu 24.04 LTS supplies
+a suitable Python). Windows 11 needs the Python launcher (`py -3`) or `python`
+on PATH. No Git or Node.js is needed. These interactive installers download the
+public source archive with its compiled UI and create a private Python environment.
 
-**Linux (shell)**
+**Publication pending:** push the installer changes in this checkout to `main`
+before sharing these commands. No GitHub Release assets are required. See
+[download status and publication checklist](docs/INSTALLATION.md#public-downloads-and-publication).
+
+**Ubuntu Server (POSIX sh, in an interactive terminal)**
 
 ```sh
-git clone https://github.com/Bluemethyst/BeamMPY.git && cd BeamMPY && python3 -m venv .venv && .venv/bin/python -m pip install . && .venv/bin/beammpy serve --data-dir .
+(f=$(mktemp) && trap 'rm -f "$f"' 0 && curl -fsSL https://raw.githubusercontent.com/Bluemethyst/BeamMPY/main/scripts/install.sh -o "$f" && sh "$f")
 ```
 
-**Windows (Command Prompt)**
+Choose the installation/data paths, unprivileged service account, access mode
+and port. Defaults: `/opt/beammpy/app`, `/var/lib/beammpy`, account `beammpy`,
+local access, port 8524. The installer starts the systemd service and enables it
+at boot. For a headless machine, choose **lan** to connect from another device;
+the installer prints its LAN addresses. Local mode prints SSH tunnel instructions.
 
-```bat
-git clone https://github.com/Bluemethyst/BeamMPY.git && cd /d BeamMPY && python -m venv .venv && .venv\Scripts\python.exe -m pip install . && .venv\Scripts\beammpy.exe serve --data-dir .
+**Windows 11 (Windows PowerShell)**
+
+```powershell
+& { $f = Join-Path $env:TEMP ('beammpy-' + [guid]::NewGuid() + '.ps1'); try { Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/Bluemethyst/BeamMPY/main/scripts/install.ps1 -OutFile $f; powershell.exe -NoProfile -ExecutionPolicy Bypass -File $f } finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue } }
 ```
 
-Open [http://127.0.0.1:8524](http://127.0.0.1:8524) and create your administrator
-account. Press `Ctrl+C` to stop the panel. To start it again from inside `BeamMPY`,
-run `.venv/bin/beammpy serve --data-dir .` on Linux or
-`.venv\Scripts\beammpy.exe serve --data-dir .` in Command Prompt.
+Choose a root directory (default `%LOCALAPPDATA%\BeamMPY`; spaces supported).
+Program/environment files go under `app\`, panel data under `data\`.
+Double-click **Start BeamMPY.bat** in that root to start the panel in the
+foreground; press `Ctrl+C` to stop. Windows installs no service or automatic startup.
+The command uses an execution-policy override only for its installer process.
 
-For a packaged installation, use the wheel and matching installers ZIP. Follow
-[Windows/Linux installation, updates and account recovery](docs/INSTALLATION.md).
-The scripts create a private Python environment and keep runtime data separate;
-Node is not needed. Windows and Ubuntu 24.04 fixture, browser, packaging and
-installer checks passed on Python 3.11/3.13 in
-[v0.3.2 CI](https://github.com/Bluemethyst/BeamMPY/actions/runs/43400444506).
-Real Linux BeamMP execution and full authenticated player joins remain unverified.
+Open the printed URL (normally [http://127.0.0.1:8524](http://127.0.0.1:8524))
+and create the first administrator with an eight-character-or-longer password.
+Initial setup closes when an account exists. Reruns reuse the recorded data;
+stop/backup first. See [installation, service commands, uninstall, updates and
+account recovery](docs/INSTALLATION.md). Real Linux BeamMP execution and full
+authenticated player joins remain unverified.
 
 ## Data and upgrades
 
-The data directory defaults to the current directory (or `BEAMMPY_DATA_DIR`). It
-contains `users.db`, `panel.secret`, `.panel.lock`, and `instances/`. An existing
+For manual CLI launches, the data directory defaults to the current directory
+(or `BEAMMPY_DATA_DIR`). The installers record the explicit data paths described
+above. Data contains `users.db`, `panel.secret`, `.panel.lock`, and `instances/`. An existing
 `server/` folder is registered in place on first startup. Existing account hashes
 and configuration/resources are preserved. Imported directories remain where they
 are. Never put runtime data inside the installed Python package.

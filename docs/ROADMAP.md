@@ -21,6 +21,22 @@ passes on a supported Linux host. The latest push passed the Windows and Ubuntu
 24.04 workflow on Python 3.11/3.13; the optional real-binary step was skipped.
 Full authenticated player joins remain separately unverified.
 
+## Installation follow-up (owner requested 2026-11-24)
+
+Keep the feature set complete. Add interactive source-based installers reusing
+the bundled UI without Node: Ubuntu systemd startup/boot enablement under an
+unprivileged account, explicit local/LAN access, and uninstall retaining data
+unless installer-created data deletion is separately confirmed; Windows chosen
+installation root, private environment/data and cwd-independent foreground
+batch launcher without service/autostart. Document prerequisites, first setup,
+operations, removal and public download/publication requirements.
+
+Implemented with local Windows install/rerun/launch/removal and distribution
+checks passing; see HANDOFF.md. Actual Ubuntu service startup, boot enablement,
+HTTP access and uninstall remain unverified: a disposable root/systemd check is
+added to CI but has not run. Public main lacks the new scripts until publication.
+No release-readiness milestone changes on the basis of this session.
+
 ## CI review and recommended next scope (2026-11-14)
 
 Reviewed [Checks run 43400444506](https://github.com/Bluemethyst/BeamMPY/actions/runs/43400444506)

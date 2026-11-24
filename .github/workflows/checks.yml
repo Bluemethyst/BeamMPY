@@ -41,6 +41,13 @@ jobs:
       - run: python tools/verify_distribution.py dist/beammpy-0.4.1-py3-none-any.whl
       - run: python tools/package_installers.py
       - run: python tools/verify_installers.py dist/beammpy-0.4.1-py3-none-any.whl
+      - if: runner.os == 'Windows'
+        run: python tools/verify_setup.py dist/beammpy-0.4.1-py3-none-any.whl
+      - if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3-venv
+          sudo "$(which python)" tools/verify_setup.py dist/beammpy-0.4.1-py3-none-any.whl
       - uses: actions/upload-artifact@v4
         with:
           name: packages-${{ matrix.os }}-${{ matrix.python }}

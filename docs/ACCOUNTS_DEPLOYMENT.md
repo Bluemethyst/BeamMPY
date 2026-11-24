@@ -42,7 +42,7 @@ prompts and a stopped-panel lock. Recovery does not require knowing the old
 password. Login explains the local recovery procedure without exposing host
 paths or adding unauthenticated password-reset endpoints.
 
-Windows PowerShell and Linux shell scripts install/update from a downloaded
+The original Windows PowerShell and Linux shell scripts install/update from a downloaded
 release wheel into a private Python virtual environment, without Node. Program
 files and data live in separate directories. Record the data location, refuse
 updates while the panel is active, stage a new environment and validate it before
@@ -50,6 +50,11 @@ switching the launcher. Keep the previous environment for recovery. Installation
 does not start a public listener, modify credentials, install system Python,
 change firewall rules or install an OS service. Existing installations may use
 their current data directory explicitly. Document manual start/stop and recovery.
+This describes the explicit wheel/manual mode. The owner-approved 2026-11-24
+installation follow-up adds interactive source installation, an Ubuntu systemd
+service and optional LAN access, with data-preserving uninstall. Windows remains
+foreground/on-demand. See [INSTALLATION.md](INSTALLATION.md) for current commands
+and [HANDOFF.md](HANDOFF.md) for verification and publication requirements.
 
 Acceptance: disposable tests for legacy migration, setup closure, password/reset
 revocation, disabled accounts, per-server/API/socket authorization and denied

@@ -126,6 +126,9 @@ def install(args):
                  "app.extensions['shutdown'](); data.cleanup()"])
             state = {"data_dir": str(data_dir), "active": str(target), "version": version,
                      "previous": existing["active"] if existing else None}
+            for setting in ("host", "port"):
+                if existing and setting in existing:
+                    state[setting] = existing[setting]
             with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=root,
                                              prefix=".installation-", suffix=".json", delete=False) as stream:
                 staged = Path(stream.name)
@@ -144,9 +147,16 @@ def install(args):
                     shutil.copyfile(source, temporary)
                     os.replace(temporary, destination)
                 if name.endswith(".sh"):
-                    destination.chmod(0o700)
+                    destination.chmod(0o755)
             run([python, "-I", str(Path(__file__).resolve()), "_activate", "--install-dir", root, str(staged)])
             activated = True
+            if os.name == "nt":
+                destination = root / "Start BeamMPY.bat"
+                # Relative to the batch file, independent of cwd and global PATH.
+                destination.write_text('@echo off\r\n"%~dp0environments\\' + target.name +
+                    '\\Scripts\\python.exe" -I "%~dp0manage.py" start %*\r\n' +
+                    'if errorlevel 1 (\r\n  echo BeamMPY stopped with an error.\r\n  pause\r\n  exit /b 1\r\n)\r\n',
+                    encoding="utf-8", newline="")
         finally:
             if staged and staged.exists():
                 staged.unlink()
@@ -190,7 +200,7 @@ def main():
         if name in ("reset-password", "create-admin"):
             command.add_argument("--username", required=True)
         if name == "start":
-            command.add_argument("--host", default="127.0.0.1")
+            command.add_argument("--host", help="Override the saved bind address (default: 127.0.0.1).")
             command.add_argument("--port", type=int, help="Override the installed BeamMPY panel port.")
     worker = sub.add_parser("_activate", help=argparse.SUPPRESS)
     worker.add_argument("--install-dir", required=True)
@@ -206,9 +216,10 @@ def main():
             command = "serve" if args.command == "start" else args.command
             arguments = [environment_python(Path(state["active"])), "-I", "-m", "beammpy", command, "--data-dir", state["data_dir"]]
             if args.command == "start":
-                arguments.extend(["--host", args.host])
-                if args.port is not None:
-                    arguments.extend(["--port", str(args.port)])
+                arguments.extend(["--host", args.host or state.get("host", "127.0.0.1")])
+                port = args.port if args.port is not None else state.get("port")
+                if port is not None:
+                    arguments.extend(["--port", str(port)])
             elif args.command != "list-users":
                 arguments.extend(["--username", args.username])
             run(arguments)

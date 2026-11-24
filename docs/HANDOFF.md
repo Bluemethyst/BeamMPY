@@ -1,6 +1,91 @@
 # BeamMPY handoff
 
-Updated 2026-11-22. Read ROADMAP.md before expanding scope.
+Updated 2026-11-24. Read ROADMAP.md before expanding scope.
+
+## Installation, first run, startup and uninstall (2026-11-24)
+
+Owner-requested scope: keep the feature set complete and improve installation
+on Ubuntu Server and Windows 11. Interactive no-argument install.sh/install.ps1
+now reuse manage.py's versioned private environments and disposable wheel/UI
+validation. Explicit --wheel/manual/offline install and update commands remain
+supported. The source archive's tracked compiled UI is reused; Node is not needed.
+
+Ubuntu setup prompts for root/data paths, local/LAN bind, port and unprivileged
+account. It installs a root-owned program, creates a private data directory for
+the service account, writes beammpy.service, enables/starts it, and checks service
+state and HTTP. The shell bootstrap reads /dev/tty after download. LAN mode prints
+detected IPv4 interface URLs; local mode explains SSH tunnelling. The installed
+uninstall.sh stops/disables/removes the unit and program, retaining data and the
+OS account by default. --purge-data requires an installer data marker and exact
+full-path confirmation; external imported folders and the account are retained.
+
+Windows setup prompts for a root (spaces supported), bind and port, placing app,
+versioned private environments and data beneath it. Start BeamMPY.bat uses its
+own directory and installed Python, independent of cwd or PATH. It runs in the
+foreground without a service or automatic startup. Reruns reuse saved data and
+launch settings, reject an active panel and retain prior environments. README
+has both one-liners; INSTALLATION.md covers prerequisites, first administrator,
+file locations, service operations, recovery, updates and data-preserving removal.
+
+Verified locally on Windows / Python 3.13.2, with disposable directories only:
+
+- Backend: **136 passed, two opt-in real BeamMP cases skipped**. Eight new checks
+  cover default uninstall preservation, exact purge confirmation, changed/adopted
+  data and unrelated service rejection, live-panel refusal and saved/override
+  launch settings. The 13 setup/deployment checks passed again after final fixes.
+- TypeScript check and production frontend build pass. Final Playwright run:
+  **eight passed**, including clean process teardown with normal Windows
+  permissions. The first sandboxed run passed all scenarios but stalled at
+  teardown; only its disposable process tree was stopped before the successful
+  rerun. Built UI remains unchanged in Git.
+- python -m build produced wheel and sdist. Clean-wheel install and UI/assets,
+  accounts/statistics/Lua/CLI checks pass with Node absent from runtime PATH.
+  Installers ZIP rebuilt with setup.py. Existing verify_installers.py passes
+  actual PowerShell install/update/active-panel rejection/installed recovery
+  launcher checks with data preserved byte-for-byte.
+- New tools/verify_setup.py passes the no-argument PowerShell source install
+  with Node absent from PATH, a root containing spaces, batch launch from a
+  different cwd, UI/assets and initial administrator setup, active-panel update
+  rejection, installed-setup rerun, byte-for-byte account/.env/TOML preservation,
+  subsequent login and program removal retaining data/external fixture files.
+- Separate foreground batch check served UI/setup on disposable port 18954.
+  A real Windows Ctrl+C event in a fresh console with normal control handling
+  stopped its listener and released its panel lock. The tool runner's default
+  console ignores Ctrl+C; no product workaround was added for that environment.
+  All fixture consoles/installations from this check were cleaned up.
+- POSIX shell syntax (Git's sh), Windows PowerShell syntax and git diff --check
+  pass. These syntax checks are not Ubuntu service execution.
+
+Public download evidence (anonymous HTTPS, 2026-11-24): releases API HTTP 200
+with []; raw main install.sh and install.ps1 HTTP 200; codeload main ZIP HTTP 200
+(6,309,990 bytes), containing pyproject.toml, compiled index and JS assets.
+The public ZIP does **not** yet contain setup.py. The documented one-liners need
+the updated scripts/install.sh, scripts/install.ps1, scripts/manage.py and new
+scripts/setup.py pushed to main, alongside docs and tracked compiled UI. No
+Release assets are required for this source route. The remote download/extract
+bootstrap cannot be tested end-to-end against the new code until publication;
+the Windows check ran the same installer from the local source directory.
+Wheel-based distribution would additionally require publishing the wheel and
+matching installers ZIP to a public Release. Nothing was committed/pushed or
+published in this session.
+
+**Pending:** no Linux host, installed WSL distribution or Docker is available
+here. Actual Ubuntu install prompts, service startup, boot enablement, LAN HTTP
+access and uninstall/purge have **not** run. tools/verify_setup.py includes these
+real root/systemd checks (PTY prompts, unprivileged service, HTTP/setup, rerun
+preservation, disable/removal, data retention and confirmed purge), wired into
+the Ubuntu CI jobs; the updated workflow has not run. Historical Ubuntu v0.3.2
+wheel-installer evidence does not verify the new service flow. No milestone is
+marked complete. Real Linux BeamMP and authenticated player joins remain separate
+unverified checks. Live accounts, .env and server directories were not used.
+
+Next: publish this reviewed installer change to main, run the updated Windows
+and Ubuntu CI jobs, fix any Ubuntu failures, and verify the actual public
+one-liners from clean hosts before removing README's publication-pending note.
+For Linux-only verification on a disposable systemd host after installing test
+dependencies: sudo /absolute/path/to/python tools/verify_setup.py
+dist/beammpy-0.4.1-py3-none-any.whl. It refuses a pre-existing beammpy.service
+and creates/removes only its unique fixture account and disposable paths.
 
 ## Default panel port
 
