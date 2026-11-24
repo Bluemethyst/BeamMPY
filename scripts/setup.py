@@ -94,6 +94,15 @@ def systemctl(*arguments):
     manage.run(['systemctl', *arguments])
 
 
+def stop_service_for_update(active):
+    result = subprocess.run(['systemctl', 'show', '--property=LoadState', '--value', 'beammpy.service'],
+                            capture_output=True, text=True, check=True)
+    # An inactive unit rejected by the parser cannot always be stopped. Replace
+    # it after validation so a rerun can recover a failed first installation.
+    if active or result.stdout.strip() != 'bad-setting':
+        systemctl('stop', 'beammpy.service')
+
+
 def systemd_quote(value, command=False):
     # systemd uses its own command parser, never a shell. Escape specifiers and
     # environment expansion as well as ordinary quoting characters.
@@ -109,7 +118,9 @@ def service_text(root, state, python):
     return service_header(root) + '\n'.join([
         '[Unit]', 'Description=BeamMPY panel', 'After=network.target', '',
         '[Service]', 'Type=simple', f'User={state["account"]}', f'Group={state["group"]}',
-        f'WorkingDirectory={systemd_quote(state["data_dir"])}',
+        # WorkingDirectory is a single literal path, not an ExecStart word list.
+        # Outer quotes are retained by its parser and make the path non-absolute.
+        'WorkingDirectory=' + str(state['data_dir']).replace('%', '%%'),
         'ExecStart=' + ' '.join(systemd_quote(value, command=True) for value in arguments),
         'Restart=on-failure', 'RestartSec=5', 'UMask=0077', 'NoNewPrivileges=true',
         'ProtectSystem=full',
@@ -117,6 +128,25 @@ def service_text(root, state, python):
         'TimeoutStopSec=infinity', 'KillMode=mixed', '',
         '[Install]', 'WantedBy=multi-user.target', '',
     ])
+
+
+def write_service_unit(root, state, python):
+    text = service_text(root, state, python)
+    with tempfile.TemporaryDirectory(prefix='.service-check-', dir=root) as temporary:
+        candidate = Path(temporary) / 'beammpy.service'
+        candidate.write_text(text, encoding='utf-8')
+        # Catch unit syntax errors before overwriting/enabling the installed unit.
+        manage.run(['systemd-analyze', 'verify', str(candidate)])
+    UNIT.write_text(text, encoding='utf-8')
+
+
+def stage_package_source(source, destination):
+    destination.mkdir()
+    for name in ('pyproject.toml', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.md'):
+        shutil.copyfile(source / name, destination / name)
+    shutil.copytree(source / 'beammpy', destination / 'beammpy',
+                    ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+    return destination
 
 
 @contextmanager
@@ -129,11 +159,17 @@ def built_wheel(source, wheel):
         raise ValueError('The source download is missing its compiled UI. Use the official source archive or a release wheel.')
     with tempfile.TemporaryDirectory(prefix='beammpy-build-') as temporary:
         work = Path(temporary)
+        build_source = source
+        if sys.platform == 'linux':
+            # Elevated setuptools builds write egg-info/build files in the source
+            # tree. Stage only package inputs in a root-owned temporary directory
+            # so the login user's downloaded tree remains theirs to clean up.
+            build_source = stage_package_source(source, work / 'source')
         venv.EnvBuilder(with_pip=True).create(work / 'builder')
         python = manage.environment_python(work / 'builder')
         print('Preparing BeamMPY with its bundled interface...', flush=True)
         manage.run([python, '-I', '-m', 'pip', 'wheel', '--quiet', '--disable-pip-version-check',
-                    '--no-deps', '--wheel-dir', work / 'wheels', source])
+                    '--no-deps', '--wheel-dir', work / 'wheels', build_source])
         wheels = list((work / 'wheels').glob('beammpy-*.whl'))
         if len(wheels) != 1:
             raise ValueError('The source build did not produce one BeamMPY wheel.')
@@ -264,7 +300,7 @@ def install(args):
             was_active = linux and UNIT.exists() and subprocess.run(
                 ['systemctl', 'is-active', '--quiet', 'beammpy.service']).returncode == 0
             if linux and UNIT.exists():
-                systemctl('stop', 'beammpy.service')
+                stop_service_for_update(was_active)
             try:
                 program = root / 'app'
                 update = (program / 'installation.json').is_file()
@@ -287,7 +323,7 @@ def install(args):
                 # The service account must traverse/read root-owned program files.
                 root.chmod(0o755)
                 manage.run(['runuser', '--user', account_name, '--', str(python), '-I', '-c', 'import beammpy'])
-                UNIT.write_text(service_text(root, state, python), encoding='utf-8')
+                write_service_unit(root, state, python)
                 (root / 'uninstall.sh').write_text('#!/bin/sh\nset -eu\ncd -- "$(dirname -- "$0")"\nexec python3 ./setup.py uninstall --root "$PWD" "$@"\n', encoding='utf-8')
                 systemctl('daemon-reload')
                 systemctl('enable', 'beammpy.service')

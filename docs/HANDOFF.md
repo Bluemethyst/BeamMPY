@@ -2,6 +2,60 @@
 
 Updated 2026-11-24. Read ROADMAP.md before expanding scope.
 
+## Ubuntu service rejection and temporary-file cleanup (2026-11-24)
+
+The owner confirms Windows installation and manual launch now work as intended.
+Their Ubuntu terminal log shows package installation/validation completing and
+boot enablement creating its symlink, followed by systemd rejecting the unit
+with a bad setting. Cleanup then reports permission errors for root-owned build,
+egg-info and Python-cache files in the login user's temporary download tree.
+The Ubuntu panel did not start in that report.
+
+Fixed WorkingDirectory generation: it is a single literal path, with percent
+specifiers escaped, rather than a quoted command argument. The old enclosing
+quotes made the value non-absolute; confirmed against
+[systemd v255's actual path parser](https://github.com/systemd/systemd/blob/v255/src/core/load-fragment.c#L2400-L2445).
+ExecStart keeps its separate command-argument quoting. The installer now invokes
+systemd-analyze verify against a temporary candidate before writing/enabling the
+unit. A rerun can replace an inactive bad-setting unit without failing while
+trying to stop it. Existing data and service-account ownership are reused.
+
+Linux wheel builds now stage only package/build metadata and the bundled UI in
+a separate root-owned temporary directory. They do not modify the login user's
+download. The elevated shell bootstrap uses python3 -B to avoid root-owned
+source bytecode caches; download progress is concise. The Windows build path and
+PowerShell launcher are unchanged. INSTALLATION.md includes service-only recovery
+commands for an existing failed installation using the default data path.
+
+Verified locally with disposable data:
+
+- Final backend suite: **145 passed, four skipped**. Two skips are opt-in real
+  BeamMP cases; two new real-systemd parser cases require Linux and are skipped
+  on this Windows host. New portable checks cover bad-setting reruns, preserving
+  an existing unit when validation fails, and keeping the downloaded source
+  unchanged even when an elevated build generates output.
+- An initial full run had one early-exit fixture timing failure during a parallel
+  wheel build (144 passed, one failed, four skipped). The isolated case passed,
+  then the complete suite passed with no parallel build. No management/process
+  behavior was changed.
+- A real wheel built from the staged package inputs with Node absent from PATH;
+  every packaged Python/UI/font/license/plugin file matched its source bytes.
+  Private/runtime root files are not copied into that build input.
+- Shell syntax, Python compilation, installers ZIP rebuild and git diff --check
+  pass. Frontend/browser suites were not rerun for these Linux installer changes.
+
+Actual Ubuntu startup, boot access and uninstall after this correction are still
+unverified locally: no installed WSL distribution or Docker/Linux host is available.
+The real-systemd parser tests and existing full service workflow must run on
+Linux. The owner's failed run verifies prompt/package/enablement progress only,
+not a working Ubuntu service. No milestone was marked complete; no live data was
+used or remote machine accessed. Nothing was committed/pushed.
+
+Next: the owner can apply the documented WorkingDirectory repair immediately
+without reinstalling. Publish the installer corrections and run the updated
+Ubuntu tests/service fixture, including non-root download cleanup and a retry
+of the failed installation, before claiming those paths verified.
+
 ## Short Ubuntu command and README cleanup (2026-11-24)
 
 Owner requested matching short download commands and a concise user-facing

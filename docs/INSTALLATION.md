@@ -73,6 +73,29 @@ Stop waits for the panel to stop its owned servers. Do not start a second panel
 on the same data directory. Change bind/port by rerunning the installer with the
 same root; it defaults to the saved values and retains the saved data directory.
 
+### Repair a failed service installation
+
+An earlier installer quoted `WorkingDirectory=` incorrectly, causing
+`Unit beammpy.service has a bad unit file setting` after package installation.
+For the default data path, repair the installed service without reinstalling:
+
+```sh
+sudo sed -i 's|^WorkingDirectory=.*|WorkingDirectory=/var/lib/beammpy|' /etc/systemd/system/beammpy.service
+sudo systemctl daemon-reload
+sudo systemctl restart beammpy
+sudo systemctl status beammpy --no-pager
+```
+
+Substitute your data path if you changed it. Accounts and server files are
+untouched. Once the corrected installer is published, rerunning it with the
+same root also repairs this failed installation. New service files are checked
+with `systemd-analyze verify` before being installed or enabled.
+
+The older installer could also leave root-owned build files in its temporary
+download folder, causing cleanup permission errors. Builds now use a separate
+temporary copy and avoid writing Python caches into the download. An older
+failed run's temporary folder may remain; this does not affect panel data.
+
 ### Uninstall
 
 For the default root (substitute your chosen path):

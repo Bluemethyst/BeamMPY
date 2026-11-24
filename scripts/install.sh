@@ -28,12 +28,13 @@ else
     trap 'rm -rf -- "$work"' 0
     trap 'exit 130' INT
     trap 'exit 143' TERM
-    curl -fL --retry 3 'https://codeload.github.com/Bluemethyst/BeamMPY/zip/refs/heads/main' -o "$work/source.zip"
+    printf 'Downloading BeamMPY...\n'
+    curl -fsSL --retry 3 'https://codeload.github.com/Bluemethyst/BeamMPY/zip/refs/heads/main' -o "$work/source.zip"
     python3 -m zipfile -e "$work/source.zip" "$work"
     source_dir="$work/BeamMPY-main"
 fi
 if [ "$(id -u)" -eq 0 ]; then
-    python3 "$source_dir/scripts/setup.py" ubuntu --source "$source_dir" </dev/tty
+    python3 -B "$source_dir/scripts/setup.py" ubuntu --source "$source_dir" </dev/tty
 else
-    sudo python3 "$source_dir/scripts/setup.py" ubuntu --source "$source_dir" </dev/tty
+    sudo python3 -B "$source_dir/scripts/setup.py" ubuntu --source "$source_dir" </dev/tty
 fi
