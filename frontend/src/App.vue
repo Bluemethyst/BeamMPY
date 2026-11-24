@@ -7,7 +7,8 @@ import UiButton from './components/UiButton.vue'
 import UiIconButton from './components/UiIconButton.vue'
 import AppearanceMenu from './components/AppearanceMenu.vue'
 import { useAppearance } from './appearance'
-import { version } from '../package.json'
+import { version } from '../../beammpy/version.json'
+import PanelUpdate from './components/PanelUpdate.vue'
 import AppNotices from './components/AppNotices.vue'
 const session = useSession(), servers = useServers(), notices = useNotices()
 useAppearance()
@@ -18,7 +19,10 @@ function resizeNavigation() { mobile.value = mobileMedia.matches; menuOpen.value
 mobileMedia.addEventListener('change', resizeNavigation)
 const destination = computed(() => ['/account', '/users'].includes(route.path) ? route.path : route.params.id ? `/servers/${String(route.params.id)}/console` : '/servers')
 function navigate(event: CustomEvent<{ value: string }>) { event.preventDefault(); void router.push(event.detail.value) }
-function drawerChanged(event: CustomEvent<{ open: boolean }>) { menuOpen.value = event.detail.open }
+function drawerChanged(event: CustomEvent<{ open: boolean }>) {
+  // M3E descendants (including the footer tooltip) also emit open-change.
+  if (event.target === event.currentTarget) menuOpen.value = event.detail.open
+}
 const bootstrapError = ref('')
 router.onError(error => { bootstrapError.value = error.message })
 let poll: ReturnType<typeof setInterval> | undefined
@@ -48,7 +52,7 @@ function reload() { location.reload() }
         <m3e-navigation-item v-if="session.user.is_admin" value="/users" icon="group">Users</m3e-navigation-item>
         <div v-if="servers.servers.length" class="m3e-navigation-drawer__headline">Your instances</div>
         <m3e-navigation-item v-for="server in servers.servers" :key="server.id" :value="`/servers/${server.id}/console`" :icon="server.running ? 'play_circle' : 'dns'">{{ server.name }}</m3e-navigation-item>
-        <div class="sidebar-bottom"><div class="local-label"><AppIcon name="check_circle" />Local host</div><p>Built for the open road.</p><span class="version-label">BeamMPY · v{{ version }}</span></div>
+        <div class="sidebar-bottom"><div class="local-label"><AppIcon name="check_circle" />Local host</div><p>Built for the open road.</p><div class="version-row"><span class="version-label">BeamMPY · v{{ version }}</span><PanelUpdate v-if="!session.user.must_change_password" /></div></div>
       </m3e-navigation-drawer>
       <div class="main-shell">
         <header class="m3e-top-app-bar topbar"><div v-if="mobile" class="m3e-top-app-bar__navigation"><UiIconButton label="Toggle navigation" :aria-expanded="menuOpen" @click="menuOpen = !menuOpen"><AppIcon name="menu" /></UiIconButton></div><div class="m3e-top-app-bar__actions"><span class="m3e-badge m3e-badge--large info-badge user-avatar" :title="session.user.username">{{ session.user.username[0]?.toUpperCase() }}</span><AppearanceMenu /><UiIconButton label="Log out" @click="logout"><AppIcon name="logout" /></UiIconButton></div></header>

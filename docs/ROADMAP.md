@@ -40,15 +40,19 @@ but exposed invalid service-path quoting and root-owned temporary build files;
 corrections and recovery instructions are implemented, awaiting Linux validation.
 No release-readiness milestone changes on the basis of this session.
 
-## Next requested scope: update availability (2026-11-24)
+## Update availability (2026-11-24)
 
-The owner requested an update-available icon beside the navigation footer's
-version and an M3E dialog with a copyable manual update command. Introduce
-consistent machine-readable version metadata and explicit user approval for
-SemVer bumps. The next-session prompt is saved in
-[NEXT_SESSION_PROMPT.md](NEXT_SESSION_PROMPT.md). This feature is not implemented;
-the README documents the existing manual update and uninstall flows now.
-Existing release-validation gates remain unchanged.
+Implemented a compact update icon beside the navigation footer version and an
+M3E dialog with copyable manual instructions selected for the panel host's OS.
+Lazy background HTTPS checks use bounded/validated responses, SemVer precedence
+and shared success/failure caches; offline use has no automatic dialog or error.
+The packaged `beammpy/version.json` is canonical, with metadata sync/check tooling,
+frontend build stamps and version-independent CI wheel paths. Versions remain
+0.4.1 pending the owner's explicit bump selection after verification.
+The public manifest and matching source/compiled UI must be published to main
+before new users can receive notices; no push/publication was authorized.
+See HANDOFF.md for this session's actual checks. Ubuntu service/boot/uninstall,
+real Linux BeamMP and authenticated player joins remain separate open gates.
 
 ## CI review and recommended next scope (2026-11-14)
 

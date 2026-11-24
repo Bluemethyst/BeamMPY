@@ -48,6 +48,9 @@ Choose **lan** during setup to connect from another device; open the URL it prin
 
 ## Update
 
+An **Update available** icon beside the panel version opens manual instructions
+when a newer version is found. Checks are cached and optional for offline use.
+
 Stop BeamMPY and back up your data and any imported server folders. Run the
 installer again and choose the **same installation folder**:
 

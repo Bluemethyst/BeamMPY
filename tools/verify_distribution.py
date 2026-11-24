@@ -1,16 +1,24 @@
 """Install the built wheel in a clean environment and verify it without Node."""
 from pathlib import Path
+from email.parser import BytesParser
+import json
 import os
 import subprocess
 import sys
 import tempfile
 import venv
 import zipfile
+from packaging.version import Version
+from version import release_wheel
 
 
 def main():
-    wheel = Path(sys.argv[1]).resolve()
+    wheel = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else release_wheel()
     with zipfile.ZipFile(wheel) as archive:
+        manifest = json.loads(archive.read('beammpy/version.json'))
+        metadata = BytesParser().parsebytes(archive.read(next(name for name in archive.namelist() if name.endswith('.dist-info/METADATA'))))
+        assert Version(manifest['version']) == Version(metadata['Version']), 'Wheel metadata differs from its manifest'
+        assert json.loads(archive.read('beammpy/web/version.json')) == manifest, 'Bundled UI version differs from panel'
         assert all(Path(name).name not in {"users.db", ".env", "ServerConfig.toml", "BeamMP-Server.exe"}
                    for name in archive.namelist()), "Runtime data must never be packaged"
     with tempfile.TemporaryDirectory(prefix="beammpy-wheel-") as root:
@@ -25,6 +33,8 @@ from pathlib import Path
 import re
 import shutil
 import beammpy
+from beammpy.updates import UpdateChecker
+from beammpy.versioning import VERSION
 assert shutil.which('node') is None
 assert 'site-packages' in str(Path(beammpy.__file__).resolve())
 app = beammpy.create_app({'DATA_DIR': 'runtime', 'SECRET_KEY': 'wheel-test-only'})
@@ -42,6 +52,12 @@ try:
                           headers={'X-CSRF-Token': bootstrap['csrf_token']})
     assert session.status_code == 201
     assert session.json['user']['is_admin']
+    assert VERSION == __import__('json').loads((Path(beammpy.__file__).parent/'version.json').read_text())['version']
+    app.extensions['updates'] = UpdateChecker(fetch=lambda: VERSION)
+    update = client.get('/api/panel/update')
+    assert update.status_code == 200 and update.json['installed_version'] == VERSION
+    assert not update.json['update_available']
+    app.extensions['updates']._worker.join(timeout=5)
     headers = {'X-CSRF-Token': session.json['csrf_token']}
     instance = app.extensions['registry'].create('Package smoke', 39001, 'package-test-key')
     assert len(client.get('/api/servers/' + instance.id + '/maps').json['maps']) == 14

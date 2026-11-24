@@ -1,12 +1,12 @@
 """Bundle the small offline-bootstrap scripts beside the release wheel."""
 from pathlib import Path
-import tomllib
 import zipfile
+from version import current_version
 
 
 def main():
     root = Path(__file__).resolve().parents[1]
-    version = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+    version = current_version(root)
     destination = root / "dist" / f"beammpy-{version}-installers.zip"
     destination.parent.mkdir(exist_ok=True)
     with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_DEFLATED) as archive:

@@ -18,6 +18,7 @@ from .manager import Registry
 from .realtime import Realtime
 from .storage import Store
 from .statistics import Statistics
+from .updates import UpdateChecker
 
 
 def create_app(config=None):
@@ -64,6 +65,7 @@ def create_app(config=None):
                             start_delay=app.config["START_DELAY"], stop_timeout=app.config["STOP_TIMEOUT"])
         app.extensions["store"] = store
         app.extensions["registry"] = registry
+        app.extensions["updates"] = UpdateChecker()
         register_auth(app, store, realtime.revoke)
         register_accounts(app, store, realtime.revoke)
         register_api(app, registry)

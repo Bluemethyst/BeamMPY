@@ -42,6 +42,13 @@ a:focus-visible, .terminal:focus-visible { outline: 3px solid var(--blue); outli
 .local-label { display: flex; align-items: center; gap: 8px; font-size: 14px; }
 .sidebar-bottom p { color: var(--muted); font-size: 12px; margin: 12px 0 8px; }
 .version-label { font-size: 11px; color: var(--muted); }
+.version-row { display: flex; align-items: center; gap: 4px; }
+.panel-update-content { display: grid; gap: 16px; line-height: 1.5; min-width: 0; }
+.panel-update-versions { display: flex; flex-wrap: wrap; gap: 16px 32px; margin: 0; }
+.panel-update-versions dt { color: var(--muted); }
+.panel-update-versions dd { margin: 0; overflow-wrap: anywhere; }
+.panel-update-command { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }
+.panel-update-actions { display: flex; flex-wrap: wrap; justify-content: end; gap: 8px; }
 .main-shell { margin-left: var(--panel-drawer-width); width: calc(100% - var(--panel-drawer-width)); display: flex; flex-direction: column; min-height: 100dvh; }
 .topbar { padding-inline: 28px; gap: 8px; }
 .topbar .m3e-top-app-bar__actions { gap: 8px; }

@@ -2,6 +2,108 @@
 
 Updated 2026-11-24. Read ROADMAP.md before expanding scope.
 
+## Panel update checker, dialog and canonical version metadata (2026-11-24)
+
+Implemented the requested update indicator beside the navigation footer version,
+an M3E tooltip/dialog and copy/close controls. The dialog shows installed and
+available panel versions, stop/backup/same-root/restart instructions, and the
+existing one-line installer command for the panel host's OS. It never executes
+commands or restarts the panel. Windows stays a foreground batch launch; Ubuntu
+keeps the existing unprivileged systemd flow. Clipboard API and the native
+selection/copy fallback support HTTPS/loopback and LAN HTTP, with manual-copy
+feedback when denied. Commands match README and reuse the existing safe update
+machinery without modifying installer behavior.
+
+`GET /api/panel/update` requires an authenticated account without a pending
+password change; members can read it without acquiring any management grants.
+It starts one lazy background check across concurrent callers, never at startup.
+Fixed anonymous HTTPS requests use connect/read timeouts, a response-body
+deadline, a 4 KiB limit, no redirects or implicit .netrc credentials, and strict
+manifest/SemVer validation. Success caches for six hours and failure for one
+hour, in this panel process. Failed/malformed checks clear any stale notice and
+remain silent; visible browsers refresh quietly every five minutes. No database
+schema, server version, account/password/grant, configuration or console behavior
+changed. SemVer compares numeric core/prerelease identifiers correctly and ignores
+build metadata for precedence.
+
+`beammpy/version.json` is the canonical version and is bundled with the panel.
+The frontend footer imports it directly. `tools/version.py` checks/synchronizes
+pyproject, README, frontend package/both root lock entries and current installation
+wheel examples. Frontend check/build run source checks; full validation also
+requires the generated bundled UI version stamp. CI checks metadata before and
+after building, and distribution tools derive wheel paths from the manifest
+when no explicit wheel argument is supplied. Packaging verifies wheel metadata,
+panel manifest and bundled UI agree. Historical handoff/roadmap versions remain
+unchanged. DEVELOPMENT.md documents the approved-bump/sync/rebuild procedure.
+
+Version remains **0.4.1** everywhere. No bump was authorized or performed.
+After verification, ask the owner to choose none (0.4.1), patch (0.4.2), minor
+(0.5.0, recommended for this compatible feature), or major (1.0.0).
+
+Verified locally on Windows / Python 3.13.2 with disposable data only:
+
+- Full backend: **212 passed, four skipped**. Skips are two opt-in real BeamMP
+  cases and two Linux-only systemd parser checks. The new feature/metadata suite
+  has **67 passing checks**, rerun after the final anonymous-request adjustment.
+  Coverage includes current/update/newer-local versions, prereleases/builds,
+  unavailable/malformed/oversized/slow/duplicate-key responses, shared requests,
+  both cache TTLs, stale-notice removal, host OS, auth/member grants, drift and
+  manifest synchronization without silently changing the UI build stamp.
+- TypeScript check and production build pass. Final full Playwright run:
+  **nine passed**, including existing management/account/logout-race/statistics
+  scenarios and the new update scenario. Keyboard activation, tooltip, focus
+  trap/Escape/restoration inside/outside the mobile drawer, 320/390px light/dark
+  layouts, both host commands, real clipboard/fallback/manual-copy feedback,
+  and silent current/unavailable states pass. Mobile screenshots were visually
+  inspected. M3E descendant tooltip open-change events initially closed the
+  mobile drawer; its handler now accepts only events from the drawer itself.
+- `python -m build` produced the 0.4.1 wheel/sdist; installers ZIP rebuilt.
+  Clean-wheel UI/assets/licenses, canonical version/update endpoint, accounts,
+  statistics/Lua, maps/mods/deletion and CLI checks pass with Node absent from
+  runtime PATH. All **113** packaged source/UI/manifest files match their source
+  bytes. Wheel/sdist include manifests and the compiled UI, exclude runtime data.
+- `tools/verify_installers.py` passes real Windows wheel install/update,
+  active-panel rejection, retained previous environment and installed recovery
+  launcher checks, preserving disposable data byte-for-byte. Existing failure
+  preservation tests pass in the backend suite.
+- `tools/verify_setup.py` passes the downloaded PowerShell one-liner against a
+  loopback source ZIP fixture (not unpublished GitHub code), using default Python
+  selection, no Node, a custom root containing spaces, batch launch from another
+  cwd, HTTP/UI/setup, active-panel rejection, same-root rerun/login, byte-for-byte
+  account/.env/TOML preservation and program removal retaining data/imports.
+- `tools/version.py` and `git diff --check` pass. Normal Windows permissions were
+  used for networked packaging, installer subprocesses and Playwright teardown.
+
+The first full backend run alongside browser work hit the previously recorded
+early-exit subprocess timing failure (209 passed, one failed, four skipped).
+The complete sequential rerun passed; process-management code was not changed.
+Early browser runs exposed test-only JSON import/theme-label issues and the two
+existing logout-race mocks rejecting the new endpoint; these are corrected in
+the final passing suite. No test was run against checkout runtime data, and the
+owner's running panel/servers were not stopped, restarted or modified.
+
+Anonymous public checks on 2026-11-24: Releases API HTTP 200 with `[]`; raw
+install.sh, install.ps1 and setup.py HTTP 200 and matching local corrected
+copies; main source ZIP HTTP 200 (**6,338,469 bytes**) with compiled index/assets.
+Thus earlier Windows launcher and Ubuntu quoting/temp-ownership corrections
+are now public, although corrected Ubuntu startup/boot/uninstall remains unrun
+here. The new canonical manifest URL still returns HTTP 404:
+https://raw.githubusercontent.com/Bluemethyst/BeamMPY/main/beammpy/version.json.
+
+**Publication required:** publish the manifest together with this checker,
+synchronized metadata/docs and matching rebuilt `beammpy/web/` to public main.
+Keep its advertised version equal to what main's source ZIP actually installs.
+No Release assets are required for that route; wheels would still require a
+public wheel and matching installers ZIP. Before publication the check fails
+quietly and caches that failure for one hour. Nothing was committed, pushed,
+published or remotely dispatched in this session.
+
+Next: obtain the version choice above, synchronize/rebuild/revalidate if changed,
+then await explicit publication authorization. After publication, confirm the
+anonymous manifest and public source install/update route. Actual corrected
+Ubuntu systemd startup/boot/HTTP/uninstall, real Linux BeamMP and authenticated
+player joins remain separate pending gates. No milestone was marked complete.
+
 ## README uninstall/update commands and next-session scope (2026-11-24)
 
 Added explicit Ubuntu uninstall and Windows removal instructions to README.

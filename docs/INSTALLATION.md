@@ -213,6 +213,23 @@ and [STATISTICS.md](STATISTICS.md) for account and statistics behavior.
 
 ## Reruns and updates
 
+The **Update available** icon beside the navigation footer's version opens an
+M3E dialog with the installed/available panel versions and a copyable command.
+The command is selected by the panel host's OS, not your browser's OS; Windows
+uses the PowerShell installer above and Ubuntu uses the shell installer above.
+The dialog never executes it or restarts anything. Manual wheel installations
+should use the explicit wheel update commands below instead of adopting a new root.
+
+Checks contact only the fixed public [version manifest](https://raw.githubusercontent.com/Bluemethyst/BeamMPY/main/beammpy/version.json)
+over HTTPS, after a signed-in user opens the panel. They run in the background,
+with connection/read timeouts, a body deadline/size limit, no redirects and strict
+JSON/SemVer validation. Results are shared across users in this panel process:
+success is cached for six hours, failure for one hour. Browsers quietly refresh
+the result every five minutes while visible; no check blocks startup, login or
+server management. Offline or malformed responses hide the notice, with no popup
+or error notification. The installed version comes from the panel's bundled
+manifest, not a managed BeamMP server. Build metadata does not affect ordering.
+
 Stop/backup first: copy the complete stopped data directory and external imported
 server directories to your backup location. Rerun the one-liner and select the
 **same installation root**. Managed installs retain their recorded data path,
@@ -265,14 +282,20 @@ that source without Node. They do not use a nonexistent `releases/latest` URL
 or authenticated/expiring Actions artifact links. Downloads follow current
 `main`; these commands are not version-pinned.
 
-The original interactive installer is now published: a subsequent anonymous check
-on 2026-11-24 returned HTTP 200 for both `scripts/install.ps1` and
-`scripts/setup.py`. That public Windows script still has the scalar argument bug
-that opens Python's shell. **Correction pending publication:** push this session's
-updated `scripts/install.ps1`, `scripts/install.sh`, `scripts/manage.py`,
-`scripts/setup.py`, README and guides to `main` so both short commands use the
-corrected installers. No GitHub
-Release assets are needed. This correction has not been committed or pushed.
+The latest anonymous check on 2026-11-24 confirms both installers and `setup.py`
+return HTTP 200 and match the local corrected copies, including the Windows
+launcher and Ubuntu service quoting/temporary-file fixes. The ZIP is 6,338,469
+bytes and contains the compiled UI. Actual corrected Ubuntu service/boot/uninstall
+validation still requires a disposable Linux systemd host; publication alone
+does not verify it.
+
+**Update checker publication required:** the canonical `beammpy/version.json`
+currently returns HTTP 404 on public main. Publish it at the URL above together
+with the checker, synchronized metadata and rebuilt `beammpy/web/` assets on
+`main`. Until then a new checker fails quietly without an update notice. Keep
+the public manifest at the version the same source ZIP actually installs; do not
+advance it ahead of the matching package/UI. No GitHub Release assets are needed
+for this source route. Nothing was pushed or published in this session.
 
 If distributing wheels instead, publish `beammpy-VERSION-py3-none-any.whl` and
 the matching `beammpy-VERSION-installers.zip` from `tools/package_installers.py`

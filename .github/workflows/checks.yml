@@ -26,6 +26,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: python -m pip install -e ".[test]"
+      - run: python tools/version.py
       - run: python -m pytest
       - if: github.event_name == 'workflow_dispatch' && inputs.real_beammp
         run: python tools/run_real_smoke.py
@@ -33,21 +34,22 @@ jobs:
         working-directory: frontend
       - run: npm run build
         working-directory: frontend
+      - run: python tools/version.py
       - run: npx playwright install --with-deps chromium
         working-directory: frontend
       - run: npm run test:e2e
         working-directory: frontend
       - run: python -m build
-      - run: python tools/verify_distribution.py dist/beammpy-0.4.1-py3-none-any.whl
+      - run: python tools/verify_distribution.py
       - run: python tools/package_installers.py
-      - run: python tools/verify_installers.py dist/beammpy-0.4.1-py3-none-any.whl
+      - run: python tools/verify_installers.py
       - if: runner.os == 'Windows'
-        run: python tools/verify_setup.py dist/beammpy-0.4.1-py3-none-any.whl
+        run: python tools/verify_setup.py
       - if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y python3-venv
-          sudo "$(which python)" tools/verify_setup.py dist/beammpy-0.4.1-py3-none-any.whl
+          sudo "$(which python)" tools/verify_setup.py
       - uses: actions/upload-artifact@v4
         with:
           name: packages-${{ matrix.os }}-${{ matrix.python }}

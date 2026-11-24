@@ -23,6 +23,7 @@ import time
 from urllib.request import HTTPCookieProcessor, ProxyHandler, Request, build_opener
 import uuid
 import zipfile
+from version import release_wheel
 
 import psutil
 
@@ -42,7 +43,7 @@ def installer_downloads(work, platform):
     directory.mkdir()
     with zipfile.ZipFile(directory / 'source.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
         # Git's file list excludes runtime data, environments and build artifacts.
-        names = subprocess.check_output(['git', 'ls-files', '--cached', '-z'], cwd=REPO)
+        names = subprocess.check_output(['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z'], cwd=REPO)
         for name in names.decode('utf-8').split('\0'):
             if name and (REPO / name).is_file():
                 archive.write(REPO / name, 'BeamMPY-main/' + name)
@@ -184,7 +185,7 @@ def stop_windows(process, log):
 
 
 def main():
-    wheel = Path(sys.argv[1]).resolve()
+    wheel = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else release_wheel()
     windows = os.name == 'nt'
     account = 'beammpy-fixture-' + uuid.uuid4().hex[:8]
     if not windows:

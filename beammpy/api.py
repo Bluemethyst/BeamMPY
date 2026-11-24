@@ -53,6 +53,12 @@ def register_api(app, registry):
             raise PanelError("Server name must contain 1–250 characters.")
         return value.strip()
 
+    @api.get("/panel/update")
+    def panel_update():
+        response = jsonify(app.extensions["updates"].snapshot())
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
     @api.get("/servers")
     def servers():
         return jsonify(servers=[snapshot(instance) for instance in list(registry.instances.values())

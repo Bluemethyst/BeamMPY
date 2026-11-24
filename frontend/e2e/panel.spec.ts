@@ -507,6 +507,9 @@ for (const signInAgain of [false, true]) {
       if (path === '/api/auth/session') { sessionReads++; await route.fulfill({ json: snapshot() }); return }
       if (path === '/api/auth/logout') { signedIn = false; csrfVersion++; await route.fulfill({ json: snapshot() }); return }
       if (path === '/api/auth/login') { signedIn = true; csrfVersion++; await route.fulfill({ json: snapshot() }); return }
+      if (path === '/api/panel/update') {
+        await route.fulfill({ json: { installed_version: '0.0.0', available_version: '0.0.0', update_available: false, status: 'current', host_os: 'unsupported', command: null } }); return
+      }
       if (path === '/api/servers' && !held) {
         held = true; pollStarted(); await release
         await route.fulfill({ status: 401, json: { error: 'Authentication required.' } }); return

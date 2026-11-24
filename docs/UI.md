@@ -1,5 +1,14 @@
 # UI conventions
 
+The footer's compact update icon uses UiIconButton with an M3E plain tooltip.
+Its M3E dialog shows panel versions and manual host-OS instructions; copy/close
+use M3E buttons and the library owns keyboard trapping/Escape/focus restoration,
+including inside a modal navigation drawer. The command wraps on narrow screens;
+the dialog is teleported to the body so nested modal layering remains native.
+Clipboard API is preferred; LAN HTTP falls back to a native selection/copy and
+provides manual-copy feedback if access fails. No shell/installer runs in the UI.
+Background checking is silent; no modal or snackbar opens automatically.
+
 Version 0.4 adds a per-server Statistics tab, visible only with statistics_view.
 Version 0.4.1 defaults it to Last hour with ten-second points and five-second
 refreshes. Display seconds in short-range interval labels and inspection times.

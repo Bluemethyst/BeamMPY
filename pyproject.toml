@@ -28,7 +28,7 @@ beammpy = "beammpy.cli:main"
 include = ["beammpy*"]
 
 [tool.setuptools.package-data]
-beammpy = ["web/**/*", "web/*", "*.lua"]
+beammpy = ["web/**/*", "web/*", "*.lua", "version.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

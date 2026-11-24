@@ -2,6 +2,7 @@ import { copyFileSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const destination = resolve('../beammpy/web/licenses')
+copyFileSync(resolve('../beammpy/version.json'), resolve('../beammpy/web/version.json'))
 mkdirSync(destination, { recursive: true })
 copyFileSync(resolve('node_modules/@kyralabs/m3exp-web/LICENSE'), resolve(destination, 'M3E-Apache-2.0.txt'))
 copyFileSync(resolve('node_modules/@kyralabs/m3e-tokens/fonts/LICENSE-google-sans-flex.txt'), resolve(destination, 'Google-Sans-Flex-OFL.txt'))

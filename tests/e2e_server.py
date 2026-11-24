@@ -8,6 +8,8 @@ import json
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from beammpy import create_app
+from beammpy.updates import UpdateChecker
+from beammpy.versioning import VERSION
 from waitress import create_server
 
 
@@ -25,6 +27,7 @@ if __name__ == "__main__":
         app = create_app({"DATA_DIR": data, "SECRET_KEY": "browser-test-only",
                           "PROCESS_COMMAND": lambda instance, executable: [sys.executable, "-u", str(Path(__file__).parent / "fixtures" / "fake_server.py")],
                           "INSTALLER": fake_install, "START_DELAY": 0.15, "STOP_TIMEOUT": 0.3})
+        app.extensions['updates'] = UpdateChecker(fetch=lambda: VERSION)
         imported = Path(data) / "import-ready"
         imported.mkdir()
         fake_install(imported, lambda *args: None, lambda: False)

@@ -1,5 +1,17 @@
 # First-release API
 
+`GET /api/panel/update` is read-only and requires an authenticated account without
+a pending password change, including members with no server grants. It returns
+`{installed_version, available_version, update_available, status, host_os, command}`.
+Status is `checking`, `available`, `current` (published version at/below local),
+or `unavailable`. `available_version` is null until a valid check succeeds; only
+`available` displays a notice. The installed version is the packaged panel
+manifest. The fixed manual command is chosen for the host (`windows`/`linux`),
+never supplied by the remote manifest or browser; unsupported hosts return null.
+No update execution endpoint exists. Results are cached server-side for six
+hours on success/one hour on failure, with `Cache-Control: no-store` on this
+authenticated response. See INSTALLATION.md for checking/publication behavior.
+
 All endpoints return JSON. Obtain a session with `GET /api/auth/session`, which
 returns `{user, setup_required, csrf_token}`. Send the token in `X-CSRF-Token`
 on every non-GET API call and retain the session cookie. Login rotates the token.

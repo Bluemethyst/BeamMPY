@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "precheck": "python ../tools/version.py --source-only",
+    "prebuild": "python ../tools/version.py --source-only",
     "dev": "node scripts/theme.mjs && vite --host 127.0.0.1",
     "check": "vue-tsc --noEmit",
     "build": "node scripts/theme.mjs && vue-tsc --noEmit && vite build && node scripts/licenses.mjs",

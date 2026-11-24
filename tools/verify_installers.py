@@ -6,10 +6,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from version import release_wheel
 
 
 def main():
-    wheel = Path(sys.argv[1]).resolve()
+    wheel = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else release_wheel()
     root = Path(__file__).resolve().parents[1]
     script_environment = {**os.environ, "BEAMMPY_PYTHON": sys.executable}
     with tempfile.TemporaryDirectory(prefix="beammpy-installers-") as temporary:
