@@ -113,6 +113,8 @@ def install(args):
             venv.EnvBuilder(with_pip=True).create(target)
             python = environment_python(target)
             command = [python, "-I", "-m", "pip", "install", "--disable-pip-version-check", "--only-binary=:all:"]
+            if getattr(args, "quiet", False):
+                command.append("--quiet")
             if args.wheelhouse:
                 command.extend(["--no-index", "--find-links", str(Path(args.wheelhouse).resolve())])
             run([*command, wheel])
@@ -173,11 +175,12 @@ def install(args):
                     target.parent.rmdir()  # Empty staging parent only; keep existing environments.
                 except OSError:
                     pass
-        print(f"Installed BeamMPY {version}. Data directory: {data_dir}")
-        print(f"Start from {root} using .\\beammpy.ps1 start (Windows) or ./beammpy.sh start (Linux).")
-        print("Open the address shown at startup to create the administrator, or run create-admin --username YOUR_NAME.")
-        if existing:
-            print("The previous Python environment was retained. Back up data before first start; database migrations run on startup.")
+        if not getattr(args, "quiet", False):
+            print(f"Installed BeamMPY {version}. Data directory: {data_dir}")
+            print(f"Start from {root} using .\\beammpy.ps1 start (Windows) or ./beammpy.sh start (Linux).")
+            print("Open the address shown at startup to create the administrator, or run create-admin --username YOUR_NAME.")
+            if existing:
+                print("The previous Python environment was retained. Back up data before first start; database migrations run on startup.")
 
 
 def main():

@@ -131,7 +131,9 @@ def built_wheel(source, wheel):
         work = Path(temporary)
         venv.EnvBuilder(with_pip=True).create(work / 'builder')
         python = manage.environment_python(work / 'builder')
-        manage.run([python, '-I', '-m', 'pip', 'wheel', '--no-deps', '--wheel-dir', work / 'wheels', source])
+        print('Preparing BeamMPY with its bundled interface...', flush=True)
+        manage.run([python, '-I', '-m', 'pip', 'wheel', '--quiet', '--disable-pip-version-check',
+                    '--no-deps', '--wheel-dir', work / 'wheels', source])
         wheels = list((work / 'wheels').glob('beammpy-*.whl'))
         if len(wheels) != 1:
             raise ValueError('The source build did not produce one BeamMPY wheel.')
@@ -267,7 +269,7 @@ def install(args):
                 program = root / 'app'
                 update = (program / 'installation.json').is_file()
                 manage.install(SimpleNamespace(command='update' if update else 'install',
-                    install_dir=str(program), data_dir=str(data), wheel=str(wheel), wheelhouse=args.wheelhouse))
+                    install_dir=str(program), data_dir=str(data), wheel=str(wheel), wheelhouse=args.wheelhouse, quiet=True))
             except BaseException:
                 if was_active:
                     systemctl('start', 'beammpy.service')

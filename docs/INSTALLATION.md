@@ -19,11 +19,11 @@ sudo apt-get install python3 python3-venv curl ca-certificates
 Run this one-liner as your normal login account; sudo is requested as needed:
 
 ```sh
-(f=$(mktemp) && trap 'rm -f "$f"' 0 && curl -fsSL https://raw.githubusercontent.com/Bluemethyst/BeamMPY/main/scripts/install.sh -o "$f" && sh "$f")
+curl -fsSL https://raw.githubusercontent.com/Bluemethyst/BeamMPY/main/scripts/install.sh | sh
 ```
 
-The script is downloaded to a temporary file before execution and explicitly
-reads prompts from `/dev/tty`, so downloads do not consume the prompt input.
+The shell reads the downloaded script from the pipe while interactive setup and
+sudo read prompts from `/dev/tty`, so the download does not consume prompt input.
 It is POSIX `sh`; Bash is not required. You can also download and inspect
 `scripts/install.sh` before running it. Do not run unattended without a terminal.
 
@@ -56,7 +56,7 @@ IPv4 interface URLs, for example `http://192.168.1.20:8524`. Use the address of
 an interface reachable from your device; `0.0.0.0` is never a browser destination.
 If needed, allow the panel TCP port from your trusted LAN in your firewall.
 Create the first administrator promptly on a trusted network. For internet
-access use the HTTPS reverse proxy settings in README.md.
+access use the [HTTPS reverse proxy settings](USAGE.md#deployment).
 
 ### Service operations
 
@@ -106,11 +106,13 @@ Run in Windows PowerShell as the user who will run the panel; administrator
 rights are unnecessary for a user-writable installation root.
 
 ```powershell
-& { $f = Join-Path $env:TEMP ('beammpy-' + [guid]::NewGuid() + '.ps1'); try { Invoke-WebRequest -UseBasicParsing https://raw.githubusercontent.com/Bluemethyst/BeamMPY/main/scripts/install.ps1 -OutFile $f; powershell.exe -NoProfile -ExecutionPolicy Bypass -File $f } finally { Remove-Item -LiteralPath $f -Force -ErrorAction SilentlyContinue } }
+iwr -useb https://raw.githubusercontent.com/Bluemethyst/BeamMPY/main/scripts/install.ps1 | iex
 ```
 
-The execution-policy override applies only to the child installer process; it
-does not change machine/user policy. Alternatively download and inspect
+The installer runs in the current PowerShell window, with its own local settings;
+it does not change machine/user execution policy. It downloads the source,
+installs BeamMPY and writes the launcher. Python runs the installation steps
+without opening its interactive shell. Alternatively download and inspect
 `scripts/install.ps1` and run it according to your local policy.
 `BEAMMPY_PYTHON` can select a specific Python executable.
 
@@ -240,13 +242,14 @@ that source without Node. They do not use a nonexistent `releases/latest` URL
 or authenticated/expiring Actions artifact links. Downloads follow current
 `main`; these commands are not version-pinned.
 
-**Publication pending for this session:** push the updated `scripts/install.sh`,
-`scripts/install.ps1`, `scripts/manage.py`, new `scripts/setup.py`, README and
-this guide to `main`, keeping the compiled `beammpy/web/` assets tracked.
-Until that happens, the remote scripts still provide the older wheel-only
-installer and the new one-liners cannot perform interactive setup. No GitHub
-Release assets need publishing for the source-based route. This session does
-not commit, push or publish a release.
+The original interactive installer is now published: a subsequent anonymous check
+on 2026-11-24 returned HTTP 200 for both `scripts/install.ps1` and
+`scripts/setup.py`. That public Windows script still has the scalar argument bug
+that opens Python's shell. **Correction pending publication:** push this session's
+updated `scripts/install.ps1`, `scripts/install.sh`, `scripts/manage.py`,
+`scripts/setup.py`, README and guides to `main` so both short commands use the
+corrected installers. No GitHub
+Release assets are needed. This correction has not been committed or pushed.
 
 If distributing wheels instead, publish `beammpy-VERSION-py3-none-any.whl` and
 the matching `beammpy-VERSION-installers.zip` from `tools/package_installers.py`

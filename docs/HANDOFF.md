@@ -2,6 +2,85 @@
 
 Updated 2026-11-24. Read ROADMAP.md before expanding scope.
 
+## Short Ubuntu command and README cleanup (2026-11-24)
+
+Owner requested matching short download commands and a concise user-facing
+README. Ubuntu now uses `curl -fsSL .../scripts/install.sh | sh`, matching
+Windows' `iwr -useb .../scripts/install.ps1 | iex`. README is reduced from 224
+lines to 58: installation, first administrator/server setup, start/stop/data
+reference and guide links. Existing detailed usage, migration, deployment,
+troubleshooting and development information is preserved in new USAGE.md and
+DEVELOPMENT.md guides. INSTALLATION.md links to the moved proxy instructions;
+the installers ZIP also includes USAGE.md.
+
+Shell bootstrap now redirects only sudo/Python prompts to /dev/tty, keeping
+the shell's script input on the download pipe. The old shell-wide exec redirect
+could lose the unread remainder of a streamed script. Piped execution also
+avoids treating an unrelated setup.py in the user's cwd as installer source.
+The Linux verify_setup.py path now exercises a real download pipeline in its
+PTY, using the same disposable HTTP archive fixture as Windows. This updated
+Linux service check has not run here.
+
+Verified locally: Git for Windows sh syntax; a disposable shell pipeline with
+stubbed download/service/account commands, actual Python ZIP extraction and
+separate sudo/Python terminal prompts, including a path with spaces. The fixture
+received both answers and executed the tail of a script padded past the shell's
+initial input buffer. This verifies pipeline/prompt behavior on Git sh, not
+Ubuntu/systemd. Relative documentation links/anchors, Python tooling compilation,
+installers ZIP contents and git diff --check pass. No application/UI behavior
+changed; backend/browser/build suites were not rerun for this documentation and
+shell-bootstrap change. Prior results remain in the preceding records below.
+
+No live data was used, no milestone changed, and nothing was committed/pushed.
+Next: publish the short-command fixes and guides, then run the updated Ubuntu
+PTY/systemd verification on a disposable Linux host and confirm public downloads.
+
+## Windows Python-shell bug and short installer command (2026-11-24)
+
+Reproduced the owner's report with the default py launcher in both Windows
+PowerShell 5.1 and PowerShell 7. The if-expression assigning @('-3') unwrapped
+the single-element array into a string. Splatting that scalar made py start its
+interactive shell rather than execute the version check/setup. Exiting that shell
+returned success, so download proceeded and the second Python invocation repeated
+the failure. The preceding session's BEAMMPY_PYTHON override masked this path.
+
+install.ps1 now keeps an explicitly typed argument array. The Windows quick start
+is the requested short `iwr -useb .../scripts/install.ps1 | iex` command, executing
+the installer in the current window with local settings. Download/extraction and
+Python setup run without entering the REPL. Testing the download path also exposed
+an Expand-Archive overload failure in Windows PowerShell 5.1 on this host; using
+Python's standard-library ZIP extraction removes that dependency. Routine pip
+output and duplicate final instructions are suppressed for interactive installs;
+errors still print, and explicit wheel/manual commands retain their output.
+
+Verified with disposable paths only:
+
+- Four regression cases pass: file execution and downloaded iwr/iex execution
+  in both PowerShell 5.1 and PowerShell 7, using default py with no interpreter
+  override. They verify setup receives its arguments and prompt input, no REPL
+  appears, and inline execution preserves the caller's error preference.
+- Updated tools/verify_setup.py passes a complete short-command install using
+  the default launcher and Node absent from PATH. A loopback HTTP fixture serves
+  the current installer/source archive, exercising actual download and extraction
+  before private-environment installation. UI/assets, administrator setup, paths
+  with spaces, batch launch from another cwd, active-panel rejection, rerun/login,
+  byte-for-byte data preservation and data-retaining program removal all pass.
+  The fixture substitutes only download URLs; this is not a claim that the
+  unpublished correction was installed from GitHub.
+- Full backend suite: **140 passed, two opt-in real BeamMP cases skipped**.
+  PowerShell syntax and git diff --check pass. Installers ZIP refreshed.
+  Frontend/browser suites were not rerun for this installer-only correction;
+  their preceding successful results remain historical evidence.
+
+Anonymous public checks now return HTTP 200 for install.ps1 and setup.py on main;
+the original delivery has been published since the earlier record below. Public
+install.ps1 still contains the scalar-argument bug. Publish this correction to
+main before retrying the short public command; no new release assets are needed.
+No commit/push was performed here. Ubuntu service/boot/uninstall checks remain
+pending on a Linux host, and no milestone status changes. Live data was untouched.
+Next: publish the correction, then confirm the public one-liner on Windows and
+run the outstanding Ubuntu service checks.
+
 ## Installation, first run, startup and uninstall (2026-11-24)
 
 Owner-requested scope: keep the feature set complete and improve installation

@@ -34,7 +34,8 @@ operations, removal and public download/publication requirements.
 Implemented with local Windows install/rerun/launch/removal and distribution
 checks passing; see HANDOFF.md. Actual Ubuntu service startup, boot enablement,
 HTTP access and uninstall remain unverified: a disposable root/systemd check is
-added to CI but has not run. Public main lacks the new scripts until publication.
+added to CI but has not run. The original installers are now on public main;
+the Windows default-launcher correction and shorter command await publication.
 No release-readiness milestone changes on the basis of this session.
 
 ## CI review and recommended next scope (2026-11-14)

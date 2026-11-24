@@ -1,10 +1,14 @@
 """Real interactive setup checks on a disposable Windows/systemd CI host.
 
-Windows exercises install.ps1 from source and the batch launcher from another cwd.
+Windows exercises iwr | iex with downloaded installer/source fixtures, the default
+Python launcher, and the batch launcher from another cwd.
 Ubuntu requires root, refuses any pre-existing beammpy unit/account, and exercises
 install.sh through a PTY (including /dev/tty prompts), service access and uninstall.
 Every path/account belongs to this fixture. Never run against an existing install.
 """
+from contextlib import contextmanager
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 from pathlib import Path
@@ -14,15 +18,49 @@ import socket
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 from urllib.request import HTTPCookieProcessor, ProxyHandler, Request, build_opener
 import uuid
+import zipfile
 
 import psutil
 
 
 REPO = Path(__file__).resolve().parents[1]
 HTTP = build_opener(ProxyHandler({}), HTTPCookieProcessor())
+
+
+@contextmanager
+def installer_downloads(work, platform):
+    """Serve the working source as GitHub would after publication.
+
+    Only fixture URLs are substituted; execute the documented download command
+    and its real archive extraction instead of bypassing them with a source path.
+    """
+    directory = work / 'downloads'
+    directory.mkdir()
+    with zipfile.ZipFile(directory / 'source.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
+        # Git's file list excludes runtime data, environments and build artifacts.
+        names = subprocess.check_output(['git', 'ls-files', '--cached', '-z'], cwd=REPO)
+        for name in names.decode('utf-8').split('\0'):
+            if name and (REPO / name).is_file():
+                archive.write(REPO / name, 'BeamMPY-main/' + name)
+    server = ThreadingHTTPServer(('127.0.0.1', 0), partial(SimpleHTTPRequestHandler, directory=str(directory)))
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f'http://127.0.0.1:{server.server_port}'
+    filename = 'install.ps1' if platform == 'windows' else 'install.sh'
+    installer = (REPO / 'scripts' / filename).read_text(encoding='utf-8')
+    installer = installer.replace('https://codeload.github.com/Bluemethyst/BeamMPY/zip/refs/heads/main', base + '/source.zip')
+    (directory / filename).write_text(installer, encoding='utf-8', newline='\n')
+    try:
+        yield (f'iwr -useb {base}/install.ps1 | iex' if platform == 'windows'
+               else f'curl -fsSL {base}/install.sh | sh')
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def request(url, payload=None, token=None):
@@ -174,13 +212,16 @@ def main():
         if windows:
             powershell = shutil.which('powershell.exe')
             system = Path(os.environ['SystemRoot'])
-            environment = {**os.environ, 'BEAMMPY_PYTHON': sys.executable,
+            launcher = shutil.which('py')
+            environment = {**os.environ,
                 'PATH': os.pathsep.join(map(str, [Path(sys.executable).parent, Path(sys.base_prefix),
+                    Path(launcher).parent if launcher else Path(sys.base_prefix),
                     system, system / 'System32', system / 'System32/WindowsPowerShell/v1.0']))}
+            environment.pop('BEAMMPY_PYTHON', None)
             assert not shutil.which('node', path=environment['PATH'])
             answers = f'{root}\nlocal\n{port}\nyes\n'
-            run([powershell, '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', REPO / 'scripts/install.ps1'],
-                answers, env=environment, cwd=work)
+            with installer_downloads(work, 'windows') as command:
+                run([powershell, '-NoProfile', '-Command', command], answers, env=environment, cwd=work)
             process, log = start_windows(root, work, base)
             try:
                 seed(base)
@@ -191,7 +232,8 @@ def main():
                 stop_windows(process, log)
         else:
             answers = f'{root}\n{data}\nlan\n{port}\n{account}\nyes\n'
-            terminal_run(['sh', REPO / 'scripts/install.sh'], answers)
+            with installer_downloads(work, 'ubuntu') as command:
+                terminal_run(['sh', '-c', command], answers)
             seed(base)
             run(['systemctl', 'is-active', '--quiet', 'beammpy.service'])
             run(['systemctl', 'is-enabled', '--quiet', 'beammpy.service'])

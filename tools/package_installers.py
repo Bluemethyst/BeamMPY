@@ -14,6 +14,7 @@ def main():
             if source.is_file() and source.suffix in {".py", ".ps1", ".sh"}:
                 archive.write(source, source.name)
         archive.write(root / "docs" / "INSTALLATION.md", "INSTALLATION.md")
+        archive.write(root / "docs" / "USAGE.md", "USAGE.md")
         archive.write(root / "docs" / "ACCOUNTS_DEPLOYMENT.md", "ACCOUNTS_DEPLOYMENT.md")
         archive.write(root / "docs" / "STATISTICS.md", "STATISTICS.md")
     print(destination.name)
